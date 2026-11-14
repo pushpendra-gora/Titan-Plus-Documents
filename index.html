@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Titan Plus Documents</title>
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#5a45fe">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- Main Container (Phone-framed on Desktop, Fullscreen on Mobile) -->
+  <div class="app-wrapper">
+    <div class="app-container">
+
+      <!-- App Header -->
+      <header class="app-header">
+        <h1 class="header-title">Titan Plus Documents</h1>
+      </header>
+
+      <!-- Document Picker Mode Banner (Shown when called from another app to pick/upload) -->
+      <div id="picker-mode-banner" class="picker-mode-banner hidden">
+        <div class="picker-badge">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          <span>SELECT DOCUMENT TO UPLOAD</span>
+        </div>
+        <p>Tap any document below to choose it for the requesting app</p>
+      </div>
+
+      <!-- Always Visible Search Bar -->
+      <div id="search-bar-container" class="search-bar-container">
+        <div class="search-input-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="doc-search-input" placeholder="Search by document name...">
+          <button id="search-clear-btn" class="clear-btn">&times;</button>
+        </div>
+      </div>
+
+      <!-- Upload Document Button -->
+      <div class="upload-section">
+        <label for="file-upload-input" class="upload-btn">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
+            <path d="M12 12v9"></path>
+            <path d="m16 16-4-4-4 4"></path>
+          </svg>
+          <span>Upload Document</span>
+        </label>
+        <input type="file" id="file-upload-input" multiple accept="*/*" style="display: none;">
+      </div>
+
+      <!-- Storage Info Badge -->
+      <div class="storage-info-bar">
+        <span id="doc-count-text">Loading documents...</span>
+        <span class="safe-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          100% Original Quality
+        </span>
+      </div>
+
+      <!-- Documents List Container -->
+      <main class="documents-list" id="documents-container">
+        <!-- Document cards will be dynamically injected here -->
+      </main>
+
+      <!-- Empty State -->
+      <div id="empty-state" class="empty-state hidden">
+        <div class="empty-illustration">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="12" y1="18" x2="12" y2="12"></line>
+            <line x1="9" y1="15" x2="15" y2="15"></line>
+          </svg>
+        </div>
+        <h3>No Documents Yet</h3>
+        <p>Click "Upload Document" above to save your Aadhaar, Marksheets, Resume, and Photos in full original quality.</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Document Preview Modal -->
+  <div id="preview-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-doc-info">
+          <h3 id="modal-title" class="modal-title">Document Name</h3>
+          <span id="modal-meta" class="modal-meta">Size • Date</span>
+        </div>
+        <div class="modal-actions">
+          <button id="modal-download-btn" class="modal-icon-btn" title="Download Original">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </button>
+          <button id="modal-share-btn" class="modal-icon-btn" title="Share Document">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </button>
+          <button id="modal-close-btn" class="modal-icon-btn close-btn" title="Close Preview">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-body" id="modal-preview-body">
+        <!-- Rendered image, PDF embed, or file info preview -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Share Fallback Modal (For Desktop or when Web Share API is unavailable) -->
+  <div id="share-fallback-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="share-sheet-card">
+      <div class="share-header">
+        <div>
+          <h3>Share Document</h3>
+          <p id="share-fallback-filename" class="text-muted">Aadhaar Card.pdf</p>
+        </div>
+        <button id="share-close-btn" class="modal-icon-btn">&times;</button>
+      </div>
+
+      <div class="share-grid">
+        <button id="share-whatsapp-btn" class="share-app-item">
+          <div class="share-app-icon wa-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.66 2.59 15.36 3.45 16.86L2.05 22L7.3 20.63C8.75 21.41 10.38 21.82 12.04 21.82C17.5 21.82 21.96 17.37 21.96 11.91C21.96 6.45 17.5 2 12.04 2M12.05 3.67C16.58 3.67 20.28 7.37 20.28 11.91C20.28 16.45 16.58 20.15 12.04 20.15C10.56 20.15 9.15 19.75 7.93 19.02L7.63 18.84L4.52 19.65L5.35 16.62L5.15 16.3C4.34 15.03 3.81 13.5 3.81 11.91C3.81 7.37 7.51 3.67 12.05 3.67Z"/>
+            </svg>
+          </div>
+          <span>WhatsApp</span>
+        </button>
+
+        <button id="share-email-btn" class="share-app-item">
+          <div class="share-app-icon mail-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+          </div>
+          <span>Email</span>
+        </button>
+
+        <button id="share-copy-btn" class="share-app-item">
+          <div class="share-app-icon copy-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </div>
+          <span>Copy Data</span>
+        </button>
+
+        <button id="share-direct-download" class="share-app-item">
+          <div class="share-app-icon dl-icon">
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <span>Direct Save</span>
+        </button>
+      </div>
+
+      <div class="share-tip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Mobile browser me click karne par Android/iOS ka complete native Share menu khulega.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions Bottom Sheet Modal (Triggered by 3-dots) -->
+  <div id="action-sheet-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="action-sheet-card">
+      <div class="action-sheet-handle"></div>
+      <div class="action-sheet-header">
+        <div id="action-sheet-thumb" class="action-sheet-mini-thumb"></div>
+        <div class="action-sheet-info">
+          <h4 id="action-sheet-title">Document Name</h4>
+          <span id="action-sheet-meta">243.4 KB • 06 Nov 2026</span>
+        </div>
+        <button id="action-sheet-close-btn" class="close-pill-btn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="action-sheet-menu">
+        <button id="as-preview-btn" class="sheet-menu-item">
+          <div class="sheet-item-icon preview-color">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+              <circle cx="12" cy="12" r="3"></circle>
+            </svg>
+          </div>
+          <div class="sheet-item-text">
+            <strong>Preview Document</strong>
+            <small>Full resolution viewer</small>
+          </div>
+        </button>
+
+        <button id="as-share-btn" class="sheet-menu-item">
+          <div class="sheet-item-icon share-color">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+          </div>
+          <div class="sheet-item-text">
+            <strong>Share Document</strong>
+            <small>WhatsApp, Gmail, Telegram & Apps</small>
+          </div>
+        </button>
+
+        <button id="as-download-btn" class="sheet-menu-item">
+          <div class="sheet-item-icon download-color">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </div>
+          <div class="sheet-item-text">
+            <strong>Download (Original Quality)</strong>
+            <small>Save to phone storage</small>
+          </div>
+        </button>
+
+        <button id="as-rename-btn" class="sheet-menu-item">
+          <div class="sheet-item-icon rename-color">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+          </div>
+          <div class="sheet-item-text">
+            <strong>Rename Document</strong>
+            <small>Change document name</small>
+          </div>
+        </button>
+
+        <button id="as-delete-btn" class="sheet-menu-item delete-item">
+          <div class="sheet-item-icon delete-color">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+          </div>
+          <div class="sheet-item-text">
+            <strong>Delete Document</strong>
+            <small>Remove from local storage</small>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Document Modal -->
+  <div id="rename-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="rename-modal-card">
+      <div class="rename-modal-header">
+        <div class="rename-modal-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3>Rename Document</h3>
+          <p class="rename-subtitle">Enter a new name for this file</p>
+        </div>
+      </div>
+      <div class="rename-modal-body">
+        <label for="rename-input" class="rename-label">File Name</label>
+        <div class="rename-input-wrapper">
+          <input type="text" id="rename-input" placeholder="Enter file name..." autocomplete="off">
+        </div>
+      </div>
+      <div class="rename-modal-footer">
+        <button id="rename-cancel-btn" class="rename-btn-secondary">Cancel</button>
+        <button id="rename-save-btn" class="rename-btn-primary">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast hidden">Message</div>
+
+  <!-- PDF.js for 100% Offline Mobile & WebView PDF Rendering -->
+  <script src="pdf.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

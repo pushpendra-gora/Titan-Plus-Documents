@@ -1,0 +1,17 @@
+{
+  "name": "Titan Plus Documents",
+  "short_name": "Titan Plus",
+  "description": "Secure Local Storage Document Manager with Original Quality",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#f2f4f8",
+  "theme_color": "#5c42f6",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

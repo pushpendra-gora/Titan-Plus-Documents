@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Android Build Outputs & Gradle Caches
+.gradle/
+build/
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.iml
+.idea/
+
+# OS specific
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.log
