@@ -26,6 +26,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
@@ -44,6 +45,8 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private boolean isPickerMode = false;
+    private boolean isPageLoaded = false;
+    private final List<String> pendingJsCalls = new ArrayList<>();
 
     private final ActivityResultLauncher<String[]> permissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestMultiplePermissions(),
@@ -93,8 +96,43 @@ public class MainActivity extends AppCompatActivity {
         String url = "file:///android_asset/index.html" + (isPickerMode ? "?mode=picker" : "");
         webView.loadUrl(url);
 
+        setupBackDispatcher();
         handleIncomingShare(intent);
         checkAndRequestPermissions();
+    }
+
+    private void setupBackDispatcher() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (webView != null) {
+                    webView.evaluateJavascript("window.handleAndroidBackPressed ? window.handleAndroidBackPressed() : false;", value -> {
+                        if ("true".equals(value) || "\"true\"".equals(value)) {
+                            // Modal or action sheet was closed by web app
+                            return;
+                        }
+                        if ("\"exit\"".equals(value) || "exit".equals(value)) {
+                            // Lock screen is active, minimize app to background
+                            moveTaskToBack(true);
+                            return;
+                        }
+                        runOnUiThread(() -> {
+                            if (webView.canGoBack()) {
+                                webView.goBack();
+                            } else {
+                                setEnabled(false);
+                                getOnBackPressedDispatcher().onBackPressed();
+                                setEnabled(true);
+                            }
+                        });
+                    });
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
+                }
+            }
+        });
     }
 
     private void checkAndRequestPermissions() {
@@ -140,7 +178,6 @@ public class MainActivity extends AppCompatActivity {
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
         settings.setAllowFileAccessFromFileURLs(true);
-        settings.setAllowUniversalAccessFromFileURLs(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setUseWideViewPort(true);
         settings.setLoadWithOverviewMode(true);
@@ -152,9 +189,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                isPageLoaded = true;
                 if (isPickerMode) {
                     webView.evaluateJavascript("if (window.enablePickerMode) window.enablePickerMode();", null);
                 }
+                for (String js : pendingJsCalls) {
+                    webView.evaluateJavascript(js, null);
+                }
+                pendingJsCalls.clear();
             }
         });
 
@@ -355,12 +397,22 @@ public class MainActivity extends AppCompatActivity {
         String type = intent.getType();
 
         if (Intent.ACTION_SEND.equals(action) && type != null) {
-            Uri streamUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            Uri streamUri = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                streamUri = intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri.class);
+            } else {
+                streamUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            }
             if (streamUri != null) {
                 importUriAsync(streamUri, type);
             }
         } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
-            ArrayList<Uri> uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            ArrayList<Uri> uris = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM, Uri.class);
+            } else {
+                uris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            }
             if (uris != null) {
                 for (Uri u : uris) {
                     importUriAsync(u, type);
@@ -395,7 +447,11 @@ public class MainActivity extends AppCompatActivity {
                                     + escapeForJs(finalName) + "', '" 
                                     + escapeForJs(finalType) + "', '" 
                                     + base64 + "');";
-                            webView.evaluateJavascript(js, null);
+                            if (isPageLoaded && webView != null) {
+                                webView.evaluateJavascript(js, null);
+                            } else {
+                                pendingJsCalls.add(js);
+                            }
                         });
                     }
                 }
@@ -423,7 +479,27 @@ public class MainActivity extends AppCompatActivity {
 
     private String escapeForJs(String str) {
         if (str == null) return "";
-        return str.replace("\\", "\\\\").replace("'", "\\'").replace("\n", "\\n").replace("\r", "");
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < str.length(); i++) {
+            char c = str.charAt(i);
+            switch (c) {
+                case '\\': sb.append("\\\\"); break;
+                case '\'': sb.append("\\'"); break;
+                case '"': sb.append("\\\""); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                case '\b': sb.append("\\b"); break;
+                case '\f': sb.append("\\f"); break;
+                default:
+                    if (c < 32 || c > 126) {
+                        sb.append(String.format("\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+            }
+        }
+        return sb.toString();
     }
 
     @Override

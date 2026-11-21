@@ -14,6 +14,7 @@ const STORE_NAME = 'documents';
 
 let db = null;
 let currentPreviewDoc = null;
+let currentPreviewBlobUrl = null;
 let currentShareDoc = null;
 
 // DOM Elements
@@ -93,7 +94,6 @@ const backupCancelBtn = document.getElementById('backup-cancel-btn');
 const backupConfirmBtn = document.getElementById('backup-confirm-btn');
 
 let pendingDeleteDoc = null;
-let pendingBackupAction = null;
 
 // About Modal Elements
 const aboutModal = document.getElementById('about-modal');
@@ -146,10 +146,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 function dismissSplashScreen() {
   const splash = document.getElementById('app-splash-screen');
   if (splash) {
-    splash.classList.add('fade-out');
     setTimeout(() => {
-      if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
-    }, 450);
+      splash.classList.add('fade-out');
+      setTimeout(() => {
+        if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+      }, 400);
+    }, 350);
   }
 }
 
@@ -162,6 +164,10 @@ function checkPickerMode() {
 
 window.enablePickerMode = function() {
   isPickerMode = true;
+  const banner = document.getElementById('picker-mode-banner');
+  if (banner) {
+    banner.classList.remove('hidden');
+  }
   showToast('Choose a document to upload');
 };
 
@@ -211,18 +217,13 @@ function revokeAllThumbUrls() {
 }
 
 function base64ToBlob(base64Data, contentType) {
-  const sliceSize = 512 * 1024; // 512 KB chunk for high throughput & minimal memory allocations
-  const byteCharacters = atob(base64Data);
-  const byteArrays = [];
-  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-    const slice = byteCharacters.slice(offset, offset + sliceSize);
-    const byteNumbers = new Array(slice.length);
-    for (let i = 0; i < slice.length; i++) {
-      byteNumbers[i] = slice.charCodeAt(i);
-    }
-    byteArrays.push(new Uint8Array(byteNumbers));
+  const binaryString = atob(base64Data);
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
   }
-  return new Blob(byteArrays, { type: contentType || 'application/octet-stream' });
+  return new Blob([bytes], { type: contentType || 'application/octet-stream' });
 }
 
 // Automatically import shared documents from other apps (WhatsApp, Chrome, etc.)
@@ -649,7 +650,11 @@ async function saveRenameDocument() {
     await saveDocumentToDB(currentRenameDoc);
     showToast(`✓ Renamed to "${finalName}"`);
     closeRenameModal();
-    await renderDocuments(searchInput.value, true);
+    const idx = cachedDocs.findIndex(d => d.id === currentRenameDoc.id);
+    if (idx !== -1) {
+      cachedDocs[idx] = currentRenameDoc;
+    }
+    await renderDocuments(searchInput.value, false);
   } catch (err) {
     console.error('Rename error:', err);
     showToast('Rename error: ' + err.message);
@@ -716,12 +721,12 @@ async function openPreviewModal(doc) {
     wrapper.className = 'preview-image-wrapper';
 
     const imgUrl = URL.createObjectURL(doc.blob);
+    currentPreviewBlobUrl = imgUrl;
     const img = document.createElement('img');
     img.src = imgUrl;
     img.className = 'preview-image';
     img.alt = doc.name;
     img.onload = () => {
-      URL.revokeObjectURL(imgUrl);
       currentPreviewController = setupPinchToZoom(wrapper, img);
     };
 
@@ -735,6 +740,7 @@ async function openPreviewModal(doc) {
     currentPreviewType = 'other';
     // HTML File live preview
     const htmlUrl = URL.createObjectURL(doc.blob);
+    currentPreviewBlobUrl = htmlUrl;
     const iframe = document.createElement('iframe');
     iframe.src = htmlUrl;
     iframe.className = 'preview-pdf-frame';
@@ -1014,6 +1020,10 @@ function closePreviewModal() {
   modalBody.innerHTML = '';
   currentPreviewDoc = null;
   currentPreviewType = null;
+  if (currentPreviewBlobUrl) {
+    try { URL.revokeObjectURL(currentPreviewBlobUrl); } catch (e) {}
+    currentPreviewBlobUrl = null;
+  }
   if (currentPreviewController) {
     if (typeof currentPreviewController.destroy === 'function') {
       currentPreviewController.destroy();
@@ -1323,7 +1333,6 @@ function openBackupConfirmModal() {
 
 function closeBackupConfirmModal() {
   if (backupConfirmModal) backupConfirmModal.classList.add('hidden');
-  pendingBackupAction = null;
 }
 
 // ----------------------------------------------------
@@ -1495,8 +1504,9 @@ function bindEventListeners() {
       try {
         await deleteDocumentFromDB(doc.id);
         revokeThumbUrl(doc.id);
+        cachedDocs = cachedDocs.filter(d => d.id !== doc.id);
         showToast(`Deleted "${doc.name}"`);
-        await renderDocuments(searchInput.value, true);
+        await renderDocuments(searchInput.value, false);
       } catch (err) {
         console.error('Delete error:', err);
         showToast('Delete error: ' + err.message);
@@ -1640,15 +1650,7 @@ function bindEventListeners() {
     }
 
     // If Setup PIN modal is active
-    if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) {
-    closeDeleteConfirmModal();
-    return true;
-  }
-  if (backupConfirmModal && !backupConfirmModal.classList.contains('hidden')) {
-    closeBackupConfirmModal();
-    return true;
-  }
-  if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
+    if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
       if (e.key >= '0' && e.key <= '9') {
         handleSetupKeypress(e.key);
       } else if (e.key === 'Backspace') {
@@ -1672,12 +1674,21 @@ function bindEventListeners() {
     }
 
     if (e.key === 'Escape') {
+      if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) {
+        closeDeleteConfirmModal();
+        return;
+      }
+      if (backupConfirmModal && !backupConfirmModal.classList.contains('hidden')) {
+        closeBackupConfirmModal();
+        return;
+      }
       closePreviewModal();
       closeShareFallback();
       closeActionSheet();
       closeRenameModal();
       closeHeaderMenu();
       closeAboutModal();
+      closePrivacyModal();
     }
   });
 }
@@ -1717,8 +1728,36 @@ function showAppLockScreen() {
   if (appLockScreen) appLockScreen.classList.remove('hidden');
 }
 
+// Cryptographic SHA-256 PIN Hashing (Zero Plaintext Storage)
+async function hashPin(pin) {
+  if (window.crypto && crypto.subtle && crypto.subtle.digest) {
+    try {
+      const msgBuffer = new TextEncoder().encode('titan_doc_salt_' + pin);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {}
+  }
+  // Fast 64-bit combined fallback hash
+  let h1 = 0x811c9dc5, h2 = 5381;
+  for (let i = 0; i < pin.length; i++) {
+    const c = pin.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = ((h2 << 5) + h2) ^ c;
+  }
+  return 'thash_' + (h1 >>> 0).toString(16) + '_' + (h2 >>> 0).toString(16);
+}
+
 function hideAppLockScreen() {
-  if (appLockScreen) appLockScreen.classList.add('hidden');
+  if (appLockScreen) {
+    appLockScreen.style.opacity = '0';
+    appLockScreen.style.transform = 'scale(1.04)';
+    setTimeout(() => {
+      appLockScreen.classList.add('hidden');
+      appLockScreen.style.opacity = '';
+      appLockScreen.style.transform = '';
+    }, 280);
+  }
   currentEnteredPin = '';
 }
 
@@ -1734,7 +1773,7 @@ function updatePinDots(container, count) {
   });
 }
 
-function handleLockKeypress(key) {
+async function handleLockKeypress(key) {
   if (key === 'backspace') {
     if (currentEnteredPin.length > 0) {
       currentEnteredPin = currentEnteredPin.slice(0, -1);
@@ -1749,7 +1788,13 @@ function handleLockKeypress(key) {
 
     if (currentEnteredPin.length === 4) {
       const storedPin = localStorage.getItem(STORAGE_LOCK_PIN);
-      if (currentEnteredPin === storedPin) {
+      const enteredHash = await hashPin(currentEnteredPin);
+
+      // Support legacy plain-text PIN migration if set in older version
+      if (enteredHash === storedPin || currentEnteredPin === storedPin) {
+        if (currentEnteredPin === storedPin) {
+          localStorage.setItem(STORAGE_LOCK_PIN, enteredHash); // Upgrade to secure hash
+        }
         showToast('✓ Welcome back!');
         hideAppLockScreen();
       } else {
@@ -1783,7 +1828,7 @@ function closePinSetupModal() {
   setupStep = 1;
 }
 
-function handleSetupKeypress(key) {
+async function handleSetupKeypress(key) {
   if (key === 'backspace') {
     if (currentEnteredPin.length > 0) {
       currentEnteredPin = currentEnteredPin.slice(0, -1);
@@ -1806,7 +1851,8 @@ function handleSetupKeypress(key) {
         setTimeout(() => updatePinDots(setupPinDots, 0), 200);
       } else if (setupStep === 2) {
         if (currentEnteredPin === setupFirstPin) {
-          localStorage.setItem(STORAGE_LOCK_PIN, currentEnteredPin);
+          const hashedPin = await hashPin(currentEnteredPin);
+          localStorage.setItem(STORAGE_LOCK_PIN, hashedPin);
           localStorage.setItem(STORAGE_LOCK_ENABLED, 'true');
           updateAppLockMenuUI();
           closePinSetupModal();
@@ -1836,7 +1882,7 @@ function closePinDisableModal() {
   disableEnteredPin = '';
 }
 
-function handleDisableKeypress(key) {
+async function handleDisableKeypress(key) {
   if (key === 'backspace') {
     if (disableEnteredPin.length > 0) {
       disableEnteredPin = disableEnteredPin.slice(0, -1);
@@ -1851,7 +1897,9 @@ function handleDisableKeypress(key) {
 
     if (disableEnteredPin.length === 4) {
       const storedPin = localStorage.getItem(STORAGE_LOCK_PIN);
-      if (disableEnteredPin === storedPin) {
+      const enteredHash = await hashPin(disableEnteredPin);
+
+      if (enteredHash === storedPin || disableEnteredPin === storedPin) {
         localStorage.setItem(STORAGE_LOCK_ENABLED, 'false');
         localStorage.removeItem(STORAGE_LOCK_PIN);
         updateAppLockMenuUI();
@@ -1995,9 +2043,6 @@ async function backupAllFilesIntoZip() {
     showToast(err.message || 'Failed to create ZIP backup.');
   }
 }
-
-const shareAllFilesAsZip = backupAllFilesIntoZip;
-const uploadAllFilesToGoogleDrive = backupAllFilesIntoZip;
 
 function showToast(msg) {
   toastEl.textContent = msg;

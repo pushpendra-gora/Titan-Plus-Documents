@@ -15,9 +15,27 @@
 </head>
 <body>
 
+  <!-- Premium Branded Launch Splash Screen (Zero White Screen) -->
+  <div id="app-splash-screen" class="app-splash-screen">
+    <div class="splash-logo-container">
+      <img src="icon.png" alt="Titan Documents" class="splash-logo-img">
+    </div>
+    <h2 class="splash-title">Titan Documents</h2>
+    <div class="splash-loader"></div>
+  </div>
+
   <!-- Main Container (Phone-framed on Desktop, Fullscreen on Mobile) -->
   <div class="app-wrapper">
     <div class="app-container">
+
+      <!-- Picker Mode Banner (Shown only when invoked by external app) -->
+      <div id="picker-mode-banner" class="picker-mode-banner hidden">
+        <div class="picker-badge">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          SELECT DOCUMENT TO ATTACH
+        </div>
+        <p>Tap any document below to select it for the requesting app</p>
+      </div>
 
       <!-- App Header -->
       <header class="app-header">
@@ -196,7 +214,7 @@
           <line x1="12" y1="16" x2="12" y2="12"></line>
           <line x1="12" y1="8" x2="12.01" y2="8"></line>
         </svg>
-        <span>Mobile browser me click karne par Android/iOS ka complete native Share menu khulega.</span>
+        <span>Tapping share on mobile opens the native Android/iOS system share sheet.</span>
       </div>
     </div>
   </div>
@@ -369,6 +387,7 @@
               <strong>App Lock</strong>
               <span id="app-lock-status-badge" class="badge-lock-disabled">Disabled</span>
             </div>
+            <p id="app-lock-status-desc" class="header-item-desc">Require 4-digit PIN to open app</p>
           </div>
         </button>
 

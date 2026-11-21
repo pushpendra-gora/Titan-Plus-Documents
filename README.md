@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Design-Titan%20SaaS%20System-5865E9.svg?style=for-the-badge" alt="Design System" />
   <img src="https://img.shields.io/badge/Security-4--Digit%20App%20Lock-16A05A.svg?style=for-the-badge&logo=shield&logoColor=white" alt="App Lock" />
   <img src="https://img.shields.io/badge/Storage-100%25%20Offline%20IndexedDB-0ea5e9.svg?style=for-the-badge" alt="Offline Storage" />
-  <img src="https://img.shields.io/badge/Backup-ZIP%20%26%20Google%20Drive-7C3AED.svg?style=for-the-badge" alt="Backup" />
+  <img src="https://img.shields.io/badge/Backup-Lossless%20ZIP%20Archive-7C3AED.svg?style=for-the-badge" alt="Backup" />
   <img src="https://img.shields.io/badge/Privacy-Zero%20Data%20Collection-16A05A.svg?style=for-the-badge" alt="Privacy First" />
 </p>
 
@@ -25,16 +25,15 @@
 - [📱 Download Production Android APK](#-download-production-android-apk)
 - [💡 Overview & Architecture](#-overview--architecture)
 - [✨ Core Features & Capabilities](#-core-features--capabilities)
-  - [1. 🔒 Built-in 4-Digit App Lock (PIN Security)](#1--built-in-4-digit-app-lock-pin-security)
-  - [2. 📦 Full Vault Backup to ZIP](#2--full-vault-backup-to-zip)
-  - [3. 📲 Universal ZIP Export & System Share](#3--universal-zip-export--system-share)
-  - [4. 🛡️ Comprehensive In-App Privacy Policy](#4-️-comprehensive-in-app-privacy-policy)
-  - [5. ⚡ Zero Black Screen Startup (Instant Launch)](#5-️-zero-black-screen-startup-instant-launch)
-  - [6. 🔍 Pinch-to-Zoom & Pan Gesture Engine](#6--pinch-to-zoom--pan-gesture-engine)
-  - [7. 📄 100% Offline Mozilla PDF.js Engine](#7--100-offline-mozilla-pdfjs-engine)
-  - [8. ✏️ In-App Document Renaming](#8-️-in-app-document-renaming)
-  - [9. 📲 Android System File Provider Integration](#9--android-system-file-provider-integration)
-  - [10. 🗂️ Universal Format Support & Real-Time Thumbnails](#10-️-universal-format-support--real-time-thumbnails)
+  - [1. 🔒 Built-in 4-Digit App Lock (SHA-256 Hashed PIN)](#1--built-in-4-digit-app-lock-sha-256-hashed-pin)
+  - [2. 📦 Full Vault Backup & System Share (.ZIP)](#2--full-vault-backup--system-share-zip)
+  - [3. 🛡️ Comprehensive In-App Privacy Policy](#3-️-comprehensive-in-app-privacy-policy)
+  - [4. ⚡ Zero Blank Screen Branded Launch](#4-️-zero-blank-screen-branded-launch)
+  - [5. 🔍 Pinch-to-Zoom & Pan Gesture Engine](#5--pinch-to-zoom--pan-gesture-engine)
+  - [6. 📄 100% Offline Mozilla PDF.js Engine](#6--100-offline-mozilla-pdfjs-engine)
+  - [7. ✏️ In-App Document Renaming](#7-️-in-app-document-renaming)
+  - [8. 📲 Android System File Provider Integration](#8--android-system-file-provider-integration)
+  - [9. 🗂️ Universal Format Support & Real-Time Thumbnails](#9-️-universal-format-support--real-time-thumbnails)
 - [🎨 Titan SaaS Design System Architecture](#-titan-saas-design-system-architecture)
 - [🧭 3-Dots (⋮) Settings & Management Menu](#-3-dots--settings--management-menu)
 - [📂 Project Directory Structure](#-project-directory-structure)
@@ -71,80 +70,71 @@ Standard cloud-based document viewers and storage services continuously sync pri
 
 ## ✨ Core Features & Capabilities
 
-### 1. 🔒 Built-in 4-Digit App Lock (PIN Security)
+### 1. 🔒 Built-in 4-Digit App Lock (SHA-256 Hashed PIN)
 - **Settings Access**: Accessible directly via the header 3-dots (⋮) menu to toggle App Lock on or off.
 - **Secure PIN Setup**: Intuitive modal flow to enter, verify, and confirm a 4-digit security PIN.
+- **Cryptographic Security**: PIN credentials are cryptographically hashed using SHA-256 before storage — zero plaintext storage.
 - **Full-Screen Authentication Gate**: Upon app launch or return, a sleek tactile lock screen blocks all vault contents until the correct PIN is provided.
-- **Anti-Bypass Protection**: Hardware back-button events and navigation gestures are intercepted so the lock gate cannot be skirted.
+- **Anti-Bypass Protection**: Modern Android OnBackPressedDispatcher and navigation gestures are intercepted so the lock gate cannot be skirted.
 - **Protected Deactivation**: Disabling the lock requires re-authenticating with the active PIN.
 
 ---
 
-### 2. 📦 Full Vault Backup to ZIP
+### 2. 📦 Full Vault Backup & System Share (.ZIP)
 - **Unified Archiving**: Tap **"Backup all files into zip"** in the 3-dots menu to instantly bundle every stored file (PDFs, images, spreadsheets, text files, archives, code) into a single `.zip` file.
 - **Lossless Deflate Engine**: Utilizes bundled offline `JSZip` for rapid, zero-quality-loss compression.
 - **Intelligent Collision Resolution**: Files sharing duplicate names receive automated numeric suffixes (e.g., `invoice (1).pdf`) to ensure zero overwriting or data loss.
-- **Instant Local Storage**: Saves directly to the device's native `Downloads/TitanDocuments` directory with automated timestamping (e.g., `Titan_Backup_2026-11-21_2105.zip`).
+- **Auto-Save & Native Share**: Automatically saves directly to `Downloads/TitanDocuments/` and launches the system share sheet (`Intent.createChooser`) with all installed sharing channels (WhatsApp, Gmail, Telegram, Quick Share, Google Drive, Files, etc.).
 
 ---
 
-### 3. 📲 Universal ZIP Export & System Share
-- **One-Tap Workflow**: Select **"Share all files as zip"** in the 3-dots menu.
-- **Safety Confirmation**: An elegant confirmation dialog verifies your action before archiving begins.
-- **Automatic Packaging**: The app generates a unified lossless `.zip` backup package in memory.
-- **Native Android Share Sheet**: Directly invokes the system chooser (`Intent.createChooser`) with all installed sharing channels (Google Drive, WhatsApp, Gmail, Telegram, Quick Share, Files, etc.).
-- **Total Versatility**: Send the ZIP to any device, cloud destination, or messaging contact with a single tap.
-
----
-
-### 4. 🛡️ Comprehensive In-App Privacy Policy
+### 3. 🛡️ Comprehensive In-App Privacy Policy
 - Dedicated **"Privacy Policy"** modal accessible from the header 3-dots menu.
 - Clearly states the foundational privacy commitments:
   - Sandboxed on-device storage.
   - Zero data telemetry, tracking cookies, or advertising identifiers.
-  - Hashed, non-synced App Lock PIN credentials.
+  - SHA-256 hashed, non-synced App Lock PIN credentials.
   - Complete data sovereignty (export, transfer, or delete at will).
   - Session-scoped, ephemeral File Provider access.
 
 ---
 
-### 5. ⚡ Zero Black Screen Startup (Instant Launch)
-- Eliminates the 1–2 second black screen common during Android WebView cold starts.
-- Synchronizes the Android native window background, splash theme, and WebView background to the signature `#F8F9FD` canvas for a flicker-free, instant startup.
+### 4. ⚡ Zero Blank Screen Branded Launch
+- Eliminates the white/black blank screen common during Android WebView cold starts.
+- Features a fluid, branded launch splash screen that smoothly fades out into the document vault for an instant 60fps native feel.
 
 ---
 
-### 6. 🔍 Pinch-to-Zoom & Pan Gesture Engine
+### 5. 🔍 Pinch-to-Zoom & Pan Gesture Engine
 - **Two-Finger Pinch**: Fluid pinch gestures support scaling up to 500% (5x) for both high-resolution photos and PDF pages.
 - **One-Finger Pan**: Smooth touch dragging allows seamless panning across zoomed documents without boundary clipping.
 - **Double-Tap Quick Zoom**: Quick double-tapping toggles between an optimized 2.4x zoom factor and the original 1x view.
 
 ---
 
-### 7. 📄 100% Offline Mozilla PDF.js Engine
+### 6. 📄 100% Offline Mozilla PDF.js Engine
 - Overcomes default mobile WebView limitations where PDFs render as blank white screens.
 - Completely bundles **Mozilla PDF.js** (`pdf.min.js` and `pdf.worker.min.js`) locally.
 - Features multi-page navigation controls (Previous / Next), real-time page indicators, and hardware-accelerated canvas rendering.
 
 ---
 
-### 8. ✏️ In-App Document Renaming
+### 7. ✏️ In-App Document Renaming
 - Open the **Document Action Sheet** by tapping the 3-dots icon on any document card.
 - Select **"Rename Document"** to update names inline.
 - Preserves file extensions automatically and synchronizes metadata instantly in IndexedDB without re-encoding binary blobs.
 
 ---
 
-### 9. 📲 Android System File Provider Integration
+### 8. 📲 Android System File Provider Integration
 - **Universal File Picker**: When uploading files inside external applications (WhatsApp, browsers, government portals, email clients), **Titan Documents** appears as a registered Android system content source.
 - **Incoming Share Receiver**: Files shared from any external app can be imported directly into the vault via the Android share sheet.
 
 ---
 
-### 10. 🗂️ Universal Format Support & Real-Time Thumbnails
+### 9. 🗂️ Universal Format Support & Real-Time Thumbnails
 - **Image Types**: JPG, JPEG, PNG, WEBP, GIF, SVG, BMP, HEIC, TIFF, AVIF with real-time thumbnail rendering.
 - **Document Types**: PDF, DOCX, XLSX, TXT, CSV, JSON, MD, PPTX, HTML, ZIP, and generic binaries.
-- **Quick Filter Tabs**: Instant categorization by All, Documents, Images, Spreadsheets, Code, and Archives.
 - **Instant Search**: Real-time substring matching across file names.
 
 ---
@@ -177,14 +167,12 @@ Clicking the header 3-dots (⋮) button opens a clean management sheet:
 ```
 ┌───────────────────────────────────────────────┐
 │ Settings & Info                               │
-│ Titan Documents • Secure Vault                │
+│ Titan Documents                               │
 ├───────────────────────────────────────────────┤
 │ 🔒 App Lock               [Enabled/Disabled]  │
 │    Require 4-digit PIN to open application    │
 │                                               │
 │ 📦 Backup all files into zip                  │
-│                                               │
-│ 📲 Share all files as zip                     │
 │                                               │
 │ 🛡️ Privacy Policy                             │
 │    100% offline, local storage & no tracking  │
