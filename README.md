@@ -27,7 +27,7 @@
 - [✨ Core Features & Capabilities](#-core-features--capabilities)
   - [1. 🔒 Built-in 4-Digit App Lock (PIN Security)](#1--built-in-4-digit-app-lock-pin-security)
   - [2. 📦 Full Vault Backup to ZIP](#2--full-vault-backup-to-zip)
-  - [3. ☁️ Direct Export to Google Drive](#3-️-direct-export-to-google-drive)
+  - [3. 📲 Universal ZIP Export & System Share](#3--universal-zip-export--system-share)
   - [4. 🛡️ Comprehensive In-App Privacy Policy](#4-️-comprehensive-in-app-privacy-policy)
   - [5. ⚡ Zero Black Screen Startup (Instant Launch)](#5-️-zero-black-screen-startup-instant-launch)
   - [6. 🔍 Pinch-to-Zoom & Pan Gesture Engine](#6--pinch-to-zoom--pan-gesture-engine)
@@ -88,11 +88,12 @@ Standard cloud-based document viewers and storage services continuously sync pri
 
 ---
 
-### 3. ☁️ Direct Export to Google Drive
-- **One-Tap Workflow**: Select **"Upload to Google Drive"** in the 3-dots menu.
-- **Automatic Packaging**: The app generates a unified `.zip` backup package in memory.
-- **Native Drive Integration**: Directly triggers an Android `ACTION_SEND` Intent targeting the Google Drive application (`com.google.android.apps.docs`).
-- **Flexible Destination**: The user selects their preferred Drive account and folder to store the complete vault archive securely in the cloud.
+### 3. 📲 Universal ZIP Export & System Share
+- **One-Tap Workflow**: Select **"Share all files as zip"** in the 3-dots menu.
+- **Safety Confirmation**: An elegant confirmation dialog verifies your action before archiving begins.
+- **Automatic Packaging**: The app generates a unified lossless `.zip` backup package in memory.
+- **Native Android Share Sheet**: Directly invokes the system chooser (`Intent.createChooser`) with all installed sharing channels (Google Drive, WhatsApp, Gmail, Telegram, Quick Share, Files, etc.).
+- **Total Versatility**: Send the ZIP to any device, cloud destination, or messaging contact with a single tap.
 
 ---
 
@@ -182,10 +183,8 @@ Clicking the header 3-dots (⋮) button opens a clean management sheet:
 │    Require 4-digit PIN to open application    │
 │                                               │
 │ 📦 Backup all files into zip                  │
-│    Package all documents into ZIP & download  │
 │                                               │
-│ ☁️ Upload to Google Drive                     │
-│    Create ZIP and open Google Drive to upload │
+│ 📲 Share all files as zip                     │
 │                                               │
 │ 🛡️ Privacy Policy                             │
 │    100% offline, local storage & no tracking  │

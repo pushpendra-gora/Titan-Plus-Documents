@@ -74,11 +74,26 @@ const headerMenuModal = document.getElementById('header-menu-modal');
 const headerMenuCloseBtn = document.getElementById('header-menu-close-btn');
 const menuAppLockBtn = document.getElementById('menu-app-lock-btn');
 const menuBackupZipBtn = document.getElementById('menu-backup-zip-btn');
-const menuUploadDriveBtn = document.getElementById('menu-upload-drive-btn');
+const menuShareZipBtn = document.getElementById('menu-share-zip-btn');
 const appLockStatusBadge = document.getElementById('app-lock-status-badge');
 const appLockStatusDesc = document.getElementById('app-lock-status-desc');
 const menuAboutBtn = document.getElementById('menu-about-btn');
 const menuPrivacyBtn = document.getElementById('menu-privacy-btn');
+
+// Confirmation Dialogs Elements
+const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+const deleteConfirmMsg = document.getElementById('delete-confirm-msg');
+const deleteCancelBtn = document.getElementById('delete-cancel-btn');
+const deleteConfirmBtn = document.getElementById('delete-confirm-btn');
+
+const backupConfirmModal = document.getElementById('backup-confirm-modal');
+const backupDialogTitle = document.getElementById('backup-dialog-title');
+const backupDialogMsg = document.getElementById('backup-dialog-msg');
+const backupCancelBtn = document.getElementById('backup-cancel-btn');
+const backupConfirmBtn = document.getElementById('backup-confirm-btn');
+
+let pendingDeleteDoc = null;
+let pendingBackupAction = null;
 
 // About Modal Elements
 const aboutModal = document.getElementById('about-modal');
@@ -1232,15 +1247,43 @@ function closeShareFallback() {
 }
 
 // ----------------------------------------------------
-// Delete Document
+// Delete Document (In-App Professional Confirmation)
 // ----------------------------------------------------
-async function confirmDeleteDocument(doc) {
-  const confirmed = window.confirm(`Kya aap "${doc.name}" ko delete karna chahte hain?`);
-  if (!confirmed) return;
+function confirmDeleteDocument(doc) {
+  pendingDeleteDoc = doc;
+  if (deleteConfirmMsg) {
+    deleteConfirmMsg.textContent = `Are you sure you want to permanently delete "${doc.name}"? This action cannot be undone.`;
+  }
+  if (deleteConfirmModal) {
+    deleteConfirmModal.classList.remove('hidden');
+  }
+}
 
-  await deleteDocumentFromDB(doc.id);
-  showToast(`Document "${doc.name}" deleted.`);
-  await renderDocuments(searchInput.value);
+function closeDeleteConfirmModal() {
+  if (deleteConfirmModal) deleteConfirmModal.classList.add('hidden');
+  pendingDeleteDoc = null;
+}
+
+// ----------------------------------------------------
+// Backup & Export Confirmation Dialog Logic
+// ----------------------------------------------------
+function openBackupConfirmModal(action) {
+  pendingBackupAction = action; // 'backup' or 'share'
+  if (action === 'backup') {
+    if (backupDialogTitle) backupDialogTitle.textContent = 'Backup All Files (.ZIP)';
+    if (backupDialogMsg) backupDialogMsg.textContent = 'Package all stored documents into a single lossless ZIP archive and save it to your device?';
+    if (backupConfirmBtn) backupConfirmBtn.textContent = 'Create Backup (.ZIP)';
+  } else {
+    if (backupDialogTitle) backupDialogTitle.textContent = 'Share All Files (.ZIP)';
+    if (backupDialogMsg) backupDialogMsg.textContent = 'Package all stored documents into a ZIP archive and open the share sheet to send or save via any app?';
+    if (backupConfirmBtn) backupConfirmBtn.textContent = 'Share ZIP';
+  }
+  if (backupConfirmModal) backupConfirmModal.classList.remove('hidden');
+}
+
+function closeBackupConfirmModal() {
+  if (backupConfirmModal) backupConfirmModal.classList.add('hidden');
+  pendingBackupAction = null;
 }
 
 // ----------------------------------------------------
@@ -1400,6 +1443,47 @@ function bindEventListeners() {
     });
   }
 
+  // Delete Confirmation Modal Listeners
+  if (deleteCancelBtn) {
+    deleteCancelBtn.addEventListener('click', closeDeleteConfirmModal);
+  }
+  if (deleteConfirmBtn) {
+    deleteConfirmBtn.addEventListener('click', async () => {
+      if (!pendingDeleteDoc) return;
+      const doc = pendingDeleteDoc;
+      closeDeleteConfirmModal();
+      await deleteDocumentFromDB(doc.id);
+      showToast(`Deleted "${doc.name}"`);
+      await renderDocuments(searchInput.value);
+    });
+  }
+  if (deleteConfirmModal) {
+    deleteConfirmModal.addEventListener('click', (e) => {
+      if (e.target === deleteConfirmModal) closeDeleteConfirmModal();
+    });
+  }
+
+  // Backup & Share ZIP Confirmation Modal Listeners
+  if (backupCancelBtn) {
+    backupCancelBtn.addEventListener('click', closeBackupConfirmModal);
+  }
+  if (backupConfirmBtn) {
+    backupConfirmBtn.addEventListener('click', () => {
+      const action = pendingBackupAction;
+      closeBackupConfirmModal();
+      if (action === 'backup') {
+        backupAllFilesIntoZip();
+      } else if (action === 'share') {
+        shareAllFilesAsZip();
+      }
+    });
+  }
+  if (backupConfirmModal) {
+    backupConfirmModal.addEventListener('click', (e) => {
+      if (e.target === backupConfirmModal) closeBackupConfirmModal();
+    });
+  }
+
   // Header 3-Dots Settings & Menu Listeners
   if (headerMenuBtn) {
     headerMenuBtn.addEventListener('click', openHeaderMenu);
@@ -1425,13 +1509,13 @@ function bindEventListeners() {
   if (menuBackupZipBtn) {
     menuBackupZipBtn.addEventListener('click', () => {
       closeHeaderMenu();
-      backupAllFilesIntoZip();
+      openBackupConfirmModal('backup');
     });
   }
-  if (menuUploadDriveBtn) {
-    menuUploadDriveBtn.addEventListener('click', () => {
+  if (menuShareZipBtn) {
+    menuShareZipBtn.addEventListener('click', () => {
       closeHeaderMenu();
-      uploadAllFilesToGoogleDrive();
+      openBackupConfirmModal('share');
     });
   }
   if (menuPrivacyBtn) {
@@ -1521,7 +1605,15 @@ function bindEventListeners() {
     }
 
     // If Setup PIN modal is active
-    if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
+    if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) {
+    closeDeleteConfirmModal();
+    return true;
+  }
+  if (backupConfirmModal && !backupConfirmModal.classList.contains('hidden')) {
+    closeBackupConfirmModal();
+    return true;
+  }
+  if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
       if (e.key >= '0' && e.key <= '9') {
         handleSetupKeypress(e.key);
       } else if (e.key === 'Backspace') {
@@ -1850,15 +1942,19 @@ async function backupAllFilesIntoZip() {
   }
 }
 
-async function uploadAllFilesToGoogleDrive() {
+async function shareAllFilesAsZip() {
   try {
-    showToast('Packaging all files for Google Drive...');
+    showToast('Creating ZIP archive of all files...');
     const { blob, filename, count } = await generateAllFilesZip();
-    showToast(`Prepared ${count} files. Opening Google Drive...`);
+    showToast(`Prepared ${count} files. Opening Share...`);
 
-    if (window.TitanAndroid && window.TitanAndroid.uploadToGoogleDrive) {
+    if (window.TitanAndroid && (window.TitanAndroid.shareAllFilesZip || window.TitanAndroid.uploadToGoogleDrive)) {
       const b64 = await blobToBase64(blob);
-      window.TitanAndroid.uploadToGoogleDrive(b64, filename, 'application/zip');
+      if (window.TitanAndroid.shareAllFilesZip) {
+        window.TitanAndroid.shareAllFilesZip(b64, filename, 'application/zip');
+      } else {
+        window.TitanAndroid.uploadToGoogleDrive(b64, filename, 'application/zip');
+      }
       return;
     }
 
@@ -1868,14 +1964,14 @@ async function uploadAllFilesToGoogleDrive() {
       if (navigator.canShare({ files: [file] })) {
         await navigator.share({
           title: filename,
-          text: 'Titan Documents ZIP Backup',
+          text: 'Titan Documents ZIP Archive',
           files: [file]
         });
         return;
       }
     }
 
-    // Browser fallback: download file then open Google Drive
+    // Browser fallback: download file
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1883,16 +1979,16 @@ async function uploadAllFilesToGoogleDrive() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(() => {
-      URL.revokeObjectURL(url);
-      window.open('https://drive.google.com', '_blank');
-    }, 1200);
-    showToast('Backup ZIP downloaded. Opening Google Drive...');
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast(`ZIP downloaded: ${filename}`);
   } catch (err) {
-    console.error('Google Drive export error:', err);
-    showToast(err.message || 'Failed to export to Google Drive.');
+    console.error('Share ZIP error:', err);
+    showToast(err.message || 'Failed to export ZIP.');
   }
 }
+
+// Backward compatibility
+const uploadAllFilesToGoogleDrive = shareAllFilesAsZip;
 
 function showToast(msg) {
   toastEl.textContent = msg;
@@ -1963,6 +2059,14 @@ window.handleAndroidBackPressed = function() {
   // If app is currently locked, Back should not bypass the lock screen
   if (appLockScreen && !appLockScreen.classList.contains('hidden')) {
     return false;
+  }
+  if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) {
+    closeDeleteConfirmModal();
+    return true;
+  }
+  if (backupConfirmModal && !backupConfirmModal.classList.contains('hidden')) {
+    closeBackupConfirmModal();
+    return true;
   }
   if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
     closePinSetupModal();

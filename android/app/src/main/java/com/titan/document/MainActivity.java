@@ -236,11 +236,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void uploadToGoogleDrive(String base64Data, String filename, String mimeType) {
+        public void shareAllFilesZip(String base64Data, String filename, String mimeType) {
             runOnUiThread(() -> {
                 try {
                     byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
-                    File cacheDir = new File(getCacheDir(), "drive_export");
+                    File cacheDir = new File(getCacheDir(), "zip_exports");
                     if (!cacheDir.exists()) cacheDir.mkdirs();
                     File file = new File(cacheDir, filename);
                     try (FileOutputStream fos = new FileOutputStream(file)) {
@@ -250,25 +250,24 @@ public class MainActivity extends AppCompatActivity {
                     Uri uri = FileProvider.getUriForFile(MainActivity.this,
                             getApplicationContext().getPackageName() + ".provider", file);
 
-                    Intent driveIntent = new Intent(Intent.ACTION_SEND);
-                    driveIntent.setType(mimeType != null ? mimeType : "application/zip");
-                    driveIntent.putExtra(Intent.EXTRA_STREAM, uri);
-                    driveIntent.putExtra(Intent.EXTRA_TITLE, filename);
-                    driveIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    driveIntent.setPackage("com.google.android.apps.docs");
+                    Intent shareIntent = new Intent(Intent.ACTION_SEND);
+                    shareIntent.setType(mimeType != null ? mimeType : "application/zip");
+                    shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                    shareIntent.putExtra(Intent.EXTRA_TITLE, filename);
+                    shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-                    try {
-                        startActivity(driveIntent);
-                        Toast.makeText(MainActivity.this, "Opening Google Drive...", Toast.LENGTH_SHORT).show();
-                    } catch (Exception e) {
-                        driveIntent.setPackage(null);
-                        Intent chooserIntent = Intent.createChooser(driveIntent, "Upload to Google Drive / Cloud");
-                        startActivity(chooserIntent);
-                    }
+                    Intent chooserIntent = Intent.createChooser(shareIntent, "Share All Files (.ZIP) via");
+                    chooserIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(chooserIntent);
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Drive export error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Export error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void uploadToGoogleDrive(String base64Data, String filename, String mimeType) {
+            shareAllFilesZip(base64Data, filename, mimeType);
         }
     }
 
