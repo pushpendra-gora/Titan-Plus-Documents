@@ -73,6 +73,8 @@ const headerMenuBtn = document.getElementById('header-menu-btn');
 const headerMenuModal = document.getElementById('header-menu-modal');
 const headerMenuCloseBtn = document.getElementById('header-menu-close-btn');
 const menuAppLockBtn = document.getElementById('menu-app-lock-btn');
+const menuBackupZipBtn = document.getElementById('menu-backup-zip-btn');
+const menuUploadDriveBtn = document.getElementById('menu-upload-drive-btn');
 const appLockStatusBadge = document.getElementById('app-lock-status-badge');
 const appLockStatusDesc = document.getElementById('app-lock-status-desc');
 const menuAboutBtn = document.getElementById('menu-about-btn');
@@ -1403,6 +1405,18 @@ function bindEventListeners() {
       }
     });
   }
+  if (menuBackupZipBtn) {
+    menuBackupZipBtn.addEventListener('click', () => {
+      closeHeaderMenu();
+      backupAllFilesIntoZip();
+    });
+  }
+  if (menuUploadDriveBtn) {
+    menuUploadDriveBtn.addEventListener('click', () => {
+      closeHeaderMenu();
+      uploadAllFilesToGoogleDrive();
+    });
+  }
   if (menuAboutBtn) {
     menuAboutBtn.addEventListener('click', () => {
       closeHeaderMenu();
@@ -1712,6 +1726,131 @@ function openAboutModal() {
 
 function closeAboutModal() {
   if (aboutModal) aboutModal.classList.add('hidden');
+}
+
+// ----------------------------------------------------
+// All-Files ZIP Backup & Google Drive Export
+// ----------------------------------------------------
+async function generateAllFilesZip() {
+  const docs = await getAllDocumentsFromDB();
+  if (!docs || docs.length === 0) {
+    throw new Error('No files available to backup. Please add some files first.');
+  }
+
+  if (typeof JSZip === 'undefined') {
+    throw new Error('ZIP engine is loading. Please try again.');
+  }
+
+  const zip = new JSZip();
+  const usedNames = new Map();
+
+  for (const doc of docs) {
+    if (!doc.blob) continue;
+
+    // Sanitize and avoid filename collisions
+    let filename = (doc.name || 'document').trim();
+    filename = filename.replace(/[/\\]/g, '_');
+
+    const lastDot = filename.lastIndexOf('.');
+    let baseName = lastDot > 0 ? filename.substring(0, lastDot) : filename;
+    let ext = lastDot > 0 ? filename.substring(lastDot) : '';
+
+    if (usedNames.has(filename.toLowerCase())) {
+      const count = usedNames.get(filename.toLowerCase()) + 1;
+      usedNames.set(filename.toLowerCase(), count);
+      filename = `${baseName} (${count})${ext}`;
+    } else {
+      usedNames.set(filename.toLowerCase(), 0);
+    }
+
+    zip.file(filename, doc.blob);
+  }
+
+  const zipBlob = await zip.generateAsync({
+    type: 'blob',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 6 }
+  });
+
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10);
+  const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const zipFilename = `Titan_Backup_${dateStr}_${timeStr}.zip`;
+
+  return { blob: zipBlob, filename: zipFilename, count: docs.length };
+}
+
+async function backupAllFilesIntoZip() {
+  try {
+    showToast('Creating ZIP backup of all files...');
+    const { blob, filename, count } = await generateAllFilesZip();
+    showToast(`Prepared ${count} files. Saving ZIP...`);
+
+    if (window.TitanAndroid && window.TitanAndroid.saveToDownloads) {
+      const b64 = await blobToBase64(blob);
+      window.TitanAndroid.saveToDownloads(b64, filename, 'application/zip');
+      showToast(`Backup downloaded: ${filename}`);
+      return;
+    }
+
+    // Web browser fallback
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    showToast(`Backup downloaded: ${filename}`);
+  } catch (err) {
+    console.error('Backup ZIP error:', err);
+    showToast(err.message || 'Failed to create ZIP backup.');
+  }
+}
+
+async function uploadAllFilesToGoogleDrive() {
+  try {
+    showToast('Packaging all files for Google Drive...');
+    const { blob, filename, count } = await generateAllFilesZip();
+    showToast(`Prepared ${count} files. Opening Google Drive...`);
+
+    if (window.TitanAndroid && window.TitanAndroid.uploadToGoogleDrive) {
+      const b64 = await blobToBase64(blob);
+      window.TitanAndroid.uploadToGoogleDrive(b64, filename, 'application/zip');
+      return;
+    }
+
+    // Web Share API fallback if supported
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: 'application/zip' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: filename,
+          text: 'Titan Documents ZIP Backup',
+          files: [file]
+        });
+        return;
+      }
+    }
+
+    // Browser fallback: download file then open Google Drive
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      window.open('https://drive.google.com', '_blank');
+    }, 1200);
+    showToast('Backup ZIP downloaded. Opening Google Drive...');
+  } catch (err) {
+    console.error('Google Drive export error:', err);
+    showToast(err.message || 'Failed to export to Google Drive.');
+  }
 }
 
 function showToast(msg) {

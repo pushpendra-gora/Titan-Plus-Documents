@@ -685,6 +685,8 @@ body {
 .delete-color { background: var(--color-danger-bg); color: var(--color-danger); }
 
 .lock-icon-color { background: var(--primary-light); color: var(--primary-color); }
+.zip-icon-color { background: #EDE9FE; color: #7C3AED; }
+.drive-icon-color { background: #E6F4EA; color: #0F9D58; }
 .about-icon-color { background: #E0F2FE; color: #0284C7; }
 
 .sheet-item-text, .header-item-content {

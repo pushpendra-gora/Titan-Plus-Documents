@@ -54,10 +54,25 @@ Aap direct Android APK file yahan se download karke apne Android phone me instal
 ### 2. ⚡ Zero Black Screen Startup (Instant Launch)
 - Android theme aur WebView dono ko native `#F8F9FD` background ke sath configure kiya gaya hai, jisse cold start ya app khulte waqt black screen bilkul nahi aati.
 
-### 3. 🔍 Double-Finger (Pinch-to-Zoom) & Pan Gesture
+### 3. 📦 Backup All Files into ZIP
+- Header ke 3-dots (⋮) menu me **"Backup all files into zip"** par tap karein.
+- App me jitne bhi documents (PDF, Photos, Word, Sheets, text, etc.) hain, un sabhi ko ek single `.zip` archive me losslessly pack kar diya jata hai.
+- Duplicate filenames ko automatic `(1)`, `(2)` suffix dekar bina kisi loss ya overwrite ke secure rakha jata hai.
+- Native Android Downloads folder me ek click me save ho jata hai.
+
+### 4. ☁️ Upload to Google Drive
+- Header ke 3-dots (⋮) menu me **"Upload to Google Drive"** par tap karein.
+- Instant complete documents ka ZIP archive banta hai aur direct Google Drive app khul jata hai.
+- Aap seedhe apne Google Drive folder ya account me backup save kar sakte hain.
+
+### 5. 🔍 Double-Finger (Pinch-to-Zoom) & Pan Gesture
 - **Photos & Images**: Kisi bhi photo ya image ko do ungliyon se pinch karke zoom in ya zoom out kar sakte hain.
 - **PDF Documents**: PDF pages me bhi smooth two-finger pinch-to-zoom uplabdh hai.
 - **1-Finger Pan**: Zoom karne ke baad 1 finger se page ko smoothly drag karke kisi bhi hisse ko aasani se padha ja sakta hai.
+
+### 6. ℹ️ About & Creator Credits
+- Header ke 3-dots (⋮) me **About Titan Documents** modal.
+- Official credits: **"Made by Pushpendra"** & **"Part of the Titan Plus Ecosystem"**.
 - **Double Tap Zoom**: Photo ya PDF par 2 baar jaldi tap karne par turant 2.4x zoom hota hai aur dobara tap karne par wapas original size par aa jata hai.
 
 ### 4. 📄 100% Offline PDF Viewer (No Blank/White Screen)
@@ -88,6 +103,7 @@ Titan-Documents/
 ├── manifest.json                # PWA Progressive Web App configuration
 ├── icon.png                     # High-res 3D neon blue icon (1024x1024)
 ├── icon.ico                     # Windows Desktop application icon
+├── jszip.min.js                 # Offline ZIP generator library
 ├── pdf.min.js                   # Mozilla PDF.js offline core library
 ├── pdf.worker.min.js            # Mozilla PDF.js offline background worker
 ├── start.bat                    # 1-Click local server runner
@@ -137,4 +153,4 @@ cd android
 ---
 
 ## 📄 License
-This project is open-source and free to use for personal document management. Part of the Titan Ecosystem.
+This project is open-source and free to use for personal document management. Part of the Titan Plus Ecosystem.

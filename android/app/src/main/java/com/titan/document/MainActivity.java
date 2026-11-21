@@ -235,6 +235,42 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public void uploadToGoogleDrive(String base64Data, String filename, String mimeType) {
+            runOnUiThread(() -> {
+                try {
+                    byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
+                    File cacheDir = new File(getCacheDir(), "drive_export");
+                    if (!cacheDir.exists()) cacheDir.mkdirs();
+                    File file = new File(cacheDir, filename);
+                    try (FileOutputStream fos = new FileOutputStream(file)) {
+                        fos.write(bytes);
+                    }
+
+                    Uri uri = FileProvider.getUriForFile(MainActivity.this,
+                            getApplicationContext().getPackageName() + ".provider", file);
+
+                    Intent driveIntent = new Intent(Intent.ACTION_SEND);
+                    driveIntent.setType(mimeType != null ? mimeType : "application/zip");
+                    driveIntent.putExtra(Intent.EXTRA_STREAM, uri);
+                    driveIntent.putExtra(Intent.EXTRA_TITLE, filename);
+                    driveIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    driveIntent.setPackage("com.google.android.apps.docs");
+
+                    try {
+                        startActivity(driveIntent);
+                        Toast.makeText(MainActivity.this, "Opening Google Drive...", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        driveIntent.setPackage(null);
+                        Intent chooserIntent = Intent.createChooser(driveIntent, "Upload to Google Drive / Cloud");
+                        startActivity(chooserIntent);
+                    }
+                } catch (Exception e) {
+                    Toast.makeText(MainActivity.this, "Drive export error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
     }
 
     private void handleIncomingShare(Intent intent) {

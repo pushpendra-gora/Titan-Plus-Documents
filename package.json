@@ -8,11 +8,18 @@
     "start": "electron .",
     "app": "electron ."
   },
-  "keywords": ["documents", "vault", "local-storage"],
+  "keywords": [
+    "documents",
+    "vault",
+    "local-storage"
+  ],
   "author": "Titan",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
     "electron": "^45.2.3"
+  },
+  "dependencies": {
+    "jszip": "^3.10.2"
   }
 }
