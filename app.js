@@ -125,7 +125,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderDocuments();
   bindEventListeners();
   checkPickerMode();
+  dismissSplashScreen();
 });
+
+function dismissSplashScreen() {
+  const splash = document.getElementById('app-splash-screen');
+  if (splash) {
+    splash.classList.add('fade-out');
+    setTimeout(() => {
+      if (splash && splash.parentNode) splash.parentNode.removeChild(splash);
+    }, 450);
+  }
+}
 
 function checkPickerMode() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -136,8 +147,7 @@ function checkPickerMode() {
 
 window.enablePickerMode = function() {
   isPickerMode = true;
-  const banner = document.getElementById('picker-mode-banner');
-  if (banner) banner.classList.remove('hidden');
+  showToast('Choose a document to upload');
 };
 
 // Select and return document to the calling app
@@ -295,11 +305,13 @@ async function renderDocuments(filterQuery = '') {
 
   if (filteredDocs.length === 0) {
     emptyState.classList.remove('hidden');
+    emptyState.style.display = 'block';
     docCountText.textContent = query ? '0 matching documents' : '0 documents';
     return;
   }
 
   emptyState.classList.add('hidden');
+  emptyState.style.display = 'none';
   docCountText.textContent = `${docs.length} document${docs.length > 1 ? 's' : ''} stored`;
 
   filteredDocs.forEach(doc => {

@@ -72,9 +72,8 @@ public class MainActivity extends AppCompatActivity {
             isPickerMode = true;
         }
 
-        getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#F8F9FD")));
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.parseColor("#F8F9FD"));
+        webView.setBackgroundColor(Color.TRANSPARENT);
         setContentView(webView);
 
         setupWebView();

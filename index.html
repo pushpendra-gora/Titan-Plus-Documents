@@ -15,6 +15,18 @@
 </head>
 <body>
 
+  <!-- Instant App Splash Screen with Centered App Icon -->
+  <div id="app-splash-screen" class="app-splash-screen">
+    <div class="splash-content">
+      <div class="splash-logo-wrap">
+        <img src="icon.png" alt="Titan Documents" class="splash-logo-img">
+      </div>
+      <h2 class="splash-title">Titan Documents</h2>
+      <p class="splash-subtitle">Secure Personal Vault</p>
+      <div class="splash-spinner"></div>
+    </div>
+  </div>
+
   <!-- Main Container (Phone-framed on Desktop, Fullscreen on Mobile) -->
   <div class="app-wrapper">
     <div class="app-container">
@@ -40,17 +52,6 @@
           </button>
         </div>
       </header>
-
-      <!-- Document Picker Mode Banner (Shown when called from another app to pick/upload) -->
-      <div id="picker-mode-banner" class="picker-mode-banner hidden">
-        <div class="picker-badge">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12"></polyline>
-          </svg>
-          <span>SELECT DOCUMENT TO UPLOAD</span>
-        </div>
-        <p>Tap any document below to choose it for the requesting app</p>
-      </div>
 
       <!-- Always Visible Search Bar -->
       <div id="search-bar-container" class="search-bar-container">
@@ -228,7 +229,7 @@
 
       <div class="action-sheet-menu">
         <button id="as-preview-btn" class="sheet-menu-item">
-          <div class="sheet-item-icon preview-color">
+          <div class="sheet-item-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
               <circle cx="12" cy="12" r="3"></circle>
@@ -236,12 +237,11 @@
           </div>
           <div class="sheet-item-text">
             <strong>Preview Document</strong>
-            <small>Full resolution viewer with pinch-zoom</small>
           </div>
         </button>
 
         <button id="as-share-btn" class="sheet-menu-item">
-          <div class="sheet-item-icon share-color">
+          <div class="sheet-item-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="18" cy="5" r="3"></circle>
               <circle cx="6" cy="12" r="3"></circle>
@@ -252,12 +252,11 @@
           </div>
           <div class="sheet-item-text">
             <strong>Share Document</strong>
-            <small>WhatsApp, Gmail, Telegram & Apps</small>
           </div>
         </button>
 
         <button id="as-download-btn" class="sheet-menu-item">
-          <div class="sheet-item-icon download-color">
+          <div class="sheet-item-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
               <polyline points="7 10 12 15 17 10"></polyline>
@@ -266,12 +265,11 @@
           </div>
           <div class="sheet-item-text">
             <strong>Download (Original Quality)</strong>
-            <small>Save to phone storage</small>
           </div>
         </button>
 
         <button id="as-rename-btn" class="sheet-menu-item">
-          <div class="sheet-item-icon rename-color">
+          <div class="sheet-item-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 20h9"></path>
               <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
@@ -279,7 +277,6 @@
           </div>
           <div class="sheet-item-text">
             <strong>Rename Document</strong>
-            <small>Change document name</small>
           </div>
         </button>
 
@@ -292,7 +289,6 @@
           </div>
           <div class="sheet-item-text">
             <strong>Delete Document</strong>
-            <small>Remove from local storage</small>
           </div>
         </button>
       </div>
@@ -342,8 +338,8 @@
       <div class="header-menu-list">
         <!-- App Lock Item -->
         <button id="menu-app-lock-btn" class="header-menu-item">
-          <div class="header-item-icon lock-icon-color">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-item-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
             </svg>
@@ -353,64 +349,54 @@
               <strong>App Lock</strong>
               <span id="app-lock-status-badge" class="badge-lock-disabled">Disabled</span>
             </div>
-            <small id="app-lock-status-desc">Require 4-digit PIN to open app</small>
           </div>
         </button>
 
         <!-- Backup All Files into ZIP -->
         <button id="menu-backup-zip-btn" class="header-menu-item">
-          <div class="header-item-icon zip-icon-color">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-item-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
               <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
               <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
           </div>
           <div class="header-item-content">
-            <div class="header-item-title-row">
-              <strong>Backup all files into zip</strong>
-            </div>
-            <small>Package all documents into ZIP & download</small>
+            <strong>Backup all files into zip</strong>
           </div>
         </button>
 
         <!-- Upload to Google Drive -->
         <button id="menu-upload-drive-btn" class="header-menu-item">
-          <div class="header-item-icon drive-icon-color">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-item-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path>
               <path d="M12 12v9"></path>
               <path d="m16 16-4-4-4 4"></path>
             </svg>
           </div>
           <div class="header-item-content">
-            <div class="header-item-title-row">
-              <strong>Upload to Google Drive</strong>
-            </div>
-            <small>Create ZIP and open Google Drive to upload</small>
+            <strong>Upload to Google Drive</strong>
           </div>
         </button>
 
         <!-- Privacy Policy Item -->
         <button id="menu-privacy-btn" class="header-menu-item">
-          <div class="header-item-icon privacy-icon-color">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-item-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
               <path d="m9 12 2 2 4-4"></path>
             </svg>
           </div>
           <div class="header-item-content">
-            <div class="header-item-title-row">
-              <strong>Privacy Policy</strong>
-            </div>
-            <small>100% offline, local storage & zero tracking</small>
+            <strong>Privacy Policy</strong>
           </div>
         </button>
 
         <!-- About Item -->
         <button id="menu-about-btn" class="header-menu-item">
-          <div class="header-item-icon about-icon-color">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <div class="header-item-icon">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"></circle>
               <line x1="12" y1="16" x2="12" y2="12"></line>
               <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -418,7 +404,6 @@
           </div>
           <div class="header-item-content">
             <strong>About Titan Documents</strong>
-            <small>Version, features & credits</small>
           </div>
         </button>
       </div>
