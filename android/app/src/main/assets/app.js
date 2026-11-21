@@ -37,6 +37,7 @@ const modalShareBtn = document.getElementById('modal-share-btn');
 // Active Preview Controller
 let currentPreviewType = null; // 'image', 'pdf', 'other'
 let currentPreviewController = null;
+let activePdfDoc = null;
 
 // Share Fallback Elements
 const shareFallbackModal = document.getElementById('share-fallback-modal');
@@ -175,17 +176,42 @@ async function selectDocumentForCallingApp(doc) {
   showToast(`Selected "${doc.name}"`);
 }
 
-// Memory management for image thumbnail Object URLs
-const activeThumbUrls = new Set();
-function revokeActiveThumbUrls() {
-  activeThumbUrls.forEach(url => {
+// Memory management for image thumbnail Object URLs (Keyed by doc.id for instant reuse & zero flicker)
+const activeThumbUrlsMap = new Map();
+let cachedDocs = [];
+
+function getOrCreateThumbUrl(doc) {
+  if (!doc || !doc.blob) return '';
+  if (activeThumbUrlsMap.has(doc.id)) {
+    return activeThumbUrlsMap.get(doc.id);
+  }
+  try {
+    const url = URL.createObjectURL(doc.blob);
+    activeThumbUrlsMap.set(doc.id, url);
+    return url;
+  } catch (e) {
+    return '';
+  }
+}
+
+function revokeThumbUrl(docId) {
+  if (activeThumbUrlsMap.has(docId)) {
+    try {
+      URL.revokeObjectURL(activeThumbUrlsMap.get(docId));
+    } catch (e) {}
+    activeThumbUrlsMap.delete(docId);
+  }
+}
+
+function revokeAllThumbUrls() {
+  for (const url of activeThumbUrlsMap.values()) {
     try { URL.revokeObjectURL(url); } catch (e) {}
-  });
-  activeThumbUrls.clear();
+  }
+  activeThumbUrlsMap.clear();
 }
 
 function base64ToBlob(base64Data, contentType) {
-  const sliceSize = 1024;
+  const sliceSize = 512 * 1024; // 512 KB chunk for high throughput & minimal memory allocations
   const byteCharacters = atob(base64Data);
   const byteArrays = [];
   for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
@@ -217,7 +243,7 @@ window.importExternalDocument = async function(filename, mimeType, base64Data) {
 
     await saveDocumentToDB(doc);
     showToast(`✓ "${filename}" saved to Titan Documents!`);
-    await renderDocuments();
+    await renderDocuments('', true);
   } catch (err) {
     console.error('Import error:', err);
     showToast('Import error: ' + err.message);
@@ -293,6 +319,7 @@ function deleteDocumentFromDB(id) {
 // Clean any leftover demo seed data so storage is purely user documents
 // ----------------------------------------------------
 async function cleanOldSeedData() {
+  if (localStorage.getItem('titan_cleaned_seeds_v1')) return;
   const seedIds = ['doc-1', 'doc-2', 'doc-3', 'doc-4', 'doc-5', 'doc-6'];
   for (const id of seedIds) {
     try {
@@ -301,20 +328,22 @@ async function cleanOldSeedData() {
       // ignore
     }
   }
+  localStorage.setItem('titan_cleaned_seeds_v1', 'true');
 }
 
 // ----------------------------------------------------
-// UI Rendering
+// UI Rendering (Cached In-Memory for Instant Search & Zero Flicker)
 // ----------------------------------------------------
-async function renderDocuments(filterQuery = '') {
-  const docs = await getAllDocumentsFromDB();
-  const query = filterQuery.trim().toLowerCase();
+async function renderDocuments(filterQuery = '', forceReloadFromDB = false) {
+  if (forceReloadFromDB || cachedDocs.length === 0) {
+    cachedDocs = await getAllDocumentsFromDB();
+  }
+  const query = (filterQuery || '').trim().toLowerCase();
   
   const filteredDocs = query
-    ? docs.filter(d => d.name.toLowerCase().includes(query))
-    : docs;
+    ? cachedDocs.filter(d => d.name && d.name.toLowerCase().includes(query))
+    : cachedDocs;
 
-  revokeActiveThumbUrls();
   docContainer.innerHTML = '';
 
   if (filteredDocs.length === 0) {
@@ -326,7 +355,7 @@ async function renderDocuments(filterQuery = '') {
 
   emptyState.classList.add('hidden');
   emptyState.style.display = 'none';
-  docCountText.textContent = `${docs.length} document${docs.length > 1 ? 's' : ''} stored`;
+  docCountText.textContent = `${cachedDocs.length} document${cachedDocs.length > 1 ? 's' : ''} stored`;
 
   filteredDocs.forEach(doc => {
     const card = createDocCardElement(doc);
@@ -413,13 +442,7 @@ function getBadgeInfo(doc) {
   // All image formats (Photos: JPG, JPEG, PNG, WEBP, GIF, SVG, BMP, HEIC, TIFF, etc.)
   const imageExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'bmp', 'heic', 'tiff', 'ico', 'avif'];
   if (imageExtensions.includes(ext) || type.startsWith('image/')) {
-    let thumbUrl = '';
-    try {
-      thumbUrl = URL.createObjectURL(doc.blob);
-      activeThumbUrls.add(thumbUrl);
-    } catch (e) {
-      thumbUrl = '';
-    }
+    const thumbUrl = getOrCreateThumbUrl(doc);
     return {
       isImage: true,
       thumbUrl: thumbUrl,
@@ -626,7 +649,7 @@ async function saveRenameDocument() {
     await saveDocumentToDB(currentRenameDoc);
     showToast(`✓ Renamed to "${finalName}"`);
     closeRenameModal();
-    await renderDocuments(searchInput.value);
+    await renderDocuments(searchInput.value, true);
   } catch (err) {
     console.error('Rename error:', err);
     showToast('Rename error: ' + err.message);
@@ -641,24 +664,32 @@ async function handleFileUpload(files) {
 
   let addedCount = 0;
   for (const file of Array.from(files)) {
-    // Read directly as Blob (zero compression, 100% loss-less original)
-    const doc = {
-      id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
-      name: file.name,
-      type: file.type || getMimeTypeFromExt(file.name),
-      size: file.size,
-      formattedSize: formatFileSize(file.size),
-      displayDate: formatDate(Date.now()),
-      timestamp: Date.now(),
-      blob: file // Store exact raw file object/blob into IndexedDB
-    };
+    try {
+      // Read directly as Blob (zero compression, 100% loss-less original)
+      const doc = {
+        id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
+        name: file.name,
+        type: file.type || getMimeTypeFromExt(file.name),
+        size: file.size,
+        formattedSize: formatFileSize(file.size),
+        displayDate: formatDate(Date.now()),
+        timestamp: Date.now(),
+        blob: file // Store exact raw file object/blob into IndexedDB
+      };
 
-    await saveDocumentToDB(doc);
-    addedCount++;
+      await saveDocumentToDB(doc);
+      addedCount++;
+    } catch (fileErr) {
+      console.error(`Error saving file "${file.name}":`, fileErr);
+    }
   }
 
-  showToast(`✓ ${addedCount} document${addedCount > 1 ? 's' : ''} stored safely in original quality!`);
-  await renderDocuments();
+  if (addedCount > 0) {
+    showToast(`✓ ${addedCount} document${addedCount > 1 ? 's' : ''} stored safely in original quality!`);
+    await renderDocuments('', true);
+  } else {
+    showToast('Failed to save selected documents.');
+  }
   fileInput.value = ''; // Reset input
 }
 
@@ -929,23 +960,26 @@ function setupPinchToZoom(container, target) {
     }
   });
 
-  window.addEventListener('mousemove', (e) => {
+  const handleMouseMove = (e) => {
     if (isMouseDown && scale > 1.05) {
       panX = e.clientX - mouseStartX;
       panY = e.clientY - mouseStartY;
       clampPan();
       updateTransform(false);
     }
-  });
+  };
 
-  window.addEventListener('mouseup', () => {
+  const handleMouseUp = () => {
     if (isMouseDown) {
       isMouseDown = false;
       container.style.cursor = 'grab';
       clampPan();
       updateTransform(true);
     }
-  });
+  };
+
+  window.addEventListener('mousemove', handleMouseMove);
+  window.addEventListener('mouseup', handleMouseUp);
 
   // Desktop Double Click
   container.addEventListener('dblclick', () => {
@@ -967,6 +1001,10 @@ function setupPinchToZoom(container, target) {
       panX = 0;
       panY = 0;
       updateTransform(true);
+    },
+    destroy: () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     }
   };
 }
@@ -976,10 +1014,19 @@ function closePreviewModal() {
   modalBody.innerHTML = '';
   currentPreviewDoc = null;
   currentPreviewType = null;
-  if (currentPreviewController && currentPreviewController.reset) {
-    currentPreviewController.reset();
+  if (currentPreviewController) {
+    if (typeof currentPreviewController.destroy === 'function') {
+      currentPreviewController.destroy();
+    }
+    if (typeof currentPreviewController.reset === 'function') {
+      currentPreviewController.reset();
+    }
   }
   currentPreviewController = null;
+  if (activePdfDoc) {
+    try { activePdfDoc.destroy(); } catch (e) {}
+    activePdfDoc = null;
+  }
 }
 
 function renderUnsupportedCard(doc) {
@@ -1029,6 +1076,7 @@ async function renderPdfDocument(doc, container) {
     const arrayBuffer = await doc.blob.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdfDoc = await loadingTask.promise;
+    activePdfDoc = pdfDoc;
     const totalPages = pdfDoc.numPages;
     let currentPageNum = 1;
 
@@ -1444,9 +1492,15 @@ function bindEventListeners() {
       if (!pendingDeleteDoc) return;
       const doc = pendingDeleteDoc;
       closeDeleteConfirmModal();
-      await deleteDocumentFromDB(doc.id);
-      showToast(`Deleted "${doc.name}"`);
-      await renderDocuments(searchInput.value);
+      try {
+        await deleteDocumentFromDB(doc.id);
+        revokeThumbUrl(doc.id);
+        showToast(`Deleted "${doc.name}"`);
+        await renderDocuments(searchInput.value, true);
+      } catch (err) {
+        console.error('Delete error:', err);
+        showToast('Delete error: ' + err.message);
+      }
     });
   }
   if (deleteConfirmModal) {
@@ -1856,7 +1910,8 @@ async function generateAllFilesZip() {
   }
 
   const zip = new JSZip();
-  const usedNames = new Map();
+  const usedNames = new Set();
+  let addedCount = 0;
 
   for (const doc of docs) {
     if (!doc.blob) continue;
@@ -1869,15 +1924,16 @@ async function generateAllFilesZip() {
     let baseName = lastDot > 0 ? filename.substring(0, lastDot) : filename;
     let ext = lastDot > 0 ? filename.substring(lastDot) : '';
 
-    if (usedNames.has(filename.toLowerCase())) {
-      const count = usedNames.get(filename.toLowerCase()) + 1;
-      usedNames.set(filename.toLowerCase(), count);
-      filename = `${baseName} (${count})${ext}`;
-    } else {
-      usedNames.set(filename.toLowerCase(), 0);
+    let candidate = filename;
+    let counter = 1;
+    while (usedNames.has(candidate.toLowerCase())) {
+      candidate = `${baseName} (${counter})${ext}`;
+      counter++;
     }
+    usedNames.add(candidate.toLowerCase());
 
-    zip.file(filename, doc.blob);
+    zip.file(candidate, doc.blob);
+    addedCount++;
   }
 
   const zipBlob = await zip.generateAsync({
@@ -1891,7 +1947,7 @@ async function generateAllFilesZip() {
   const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const zipFilename = `Titan_Backup_${dateStr}_${timeStr}.zip`;
 
-  return { blob: zipBlob, filename: zipFilename, count: docs.length };
+  return { blob: zipBlob, filename: zipFilename, count: addedCount };
 }
 
 async function backupAllFilesIntoZip() {
@@ -2009,9 +2065,9 @@ function blobToBase64(blob) {
 
 // Android Hardware / Gesture Back Button Interceptor
 window.handleAndroidBackPressed = function() {
-  // If app is currently locked, Back should not bypass the lock screen
+  // If app is currently locked, Back should minimize or exit without allowing internal navigation
   if (appLockScreen && !appLockScreen.classList.contains('hidden')) {
-    return false;
+    return 'exit';
   }
   if (deleteConfirmModal && !deleteConfirmModal.classList.contains('hidden')) {
     closeDeleteConfirmModal();

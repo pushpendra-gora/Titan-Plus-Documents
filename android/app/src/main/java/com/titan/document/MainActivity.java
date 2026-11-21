@@ -1,6 +1,7 @@
 package com.titan.document;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
@@ -168,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
 
                     Intent resultIntent = new Intent();
                     resultIntent.setDataAndType(uri, mimeType != null ? mimeType : "*/*");
+                    resultIntent.setClipData(ClipData.newRawUri("", uri));
                     resultIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     setResult(Activity.RESULT_OK, resultIntent);
                     Toast.makeText(MainActivity.this, "Selected: " + filename, Toast.LENGTH_SHORT).show();
@@ -197,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
                     shareIntent.setType(mimeType != null ? mimeType : "*/*");
                     shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
                     shareIntent.putExtra(Intent.EXTRA_TITLE, filename);
+                    shareIntent.setClipData(ClipData.newRawUri("", uri));
                     shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(Intent.createChooser(shareIntent, "Share Document via"));
                 } catch (Exception e) {
@@ -284,6 +287,7 @@ public class MainActivity extends AppCompatActivity {
                     shareIntent.setType(mimeType != null ? mimeType : "application/zip");
                     shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
                     shareIntent.putExtra(Intent.EXTRA_TITLE, filename);
+                    shareIntent.setClipData(ClipData.newRawUri("", uri));
                     shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
                     Intent chooserIntent = Intent.createChooser(shareIntent, "Share Backup (.ZIP) via");
@@ -333,25 +337,28 @@ public class MainActivity extends AppCompatActivity {
                 String filename = getFileNameFromUri(uri, resolver);
                 if (filename == null) filename = "Imported_" + System.currentTimeMillis();
 
-                InputStream is = resolver.openInputStream(uri);
-                if (is != null) {
-                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-                    int nRead;
-                    byte[] data = new byte[16384];
-                    while ((nRead = is.read(data, 0, data.length)) != -1) {
-                        buffer.write(data, 0, nRead);
-                    }
-                    buffer.flush();
-                    byte[] fileBytes = buffer.toByteArray();
-                    String base64 = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
+                try (InputStream is = resolver.openInputStream(uri)) {
+                    if (is != null) {
+                        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                        int nRead;
+                        byte[] data = new byte[32768];
+                        while ((nRead = is.read(data, 0, data.length)) != -1) {
+                            buffer.write(data, 0, nRead);
+                        }
+                        buffer.flush();
+                        byte[] fileBytes = buffer.toByteArray();
+                        String base64 = Base64.encodeToString(fileBytes, Base64.NO_WRAP);
 
-                    final String finalName = filename;
-                    final String finalType = mimeType != null ? mimeType : "application/octet-stream";
-                    runOnUiThread(() -> {
-                        String js = String.format("if (window.importExternalDocument) window.importExternalDocument('%s', '%s', '%s');",
-                                escapeForJs(finalName), escapeForJs(finalType), base64);
-                        webView.evaluateJavascript(js, null);
-                    });
+                        final String finalName = filename;
+                        final String finalType = mimeType != null ? mimeType : "application/octet-stream";
+                        runOnUiThread(() -> {
+                            String js = "if (window.importExternalDocument) window.importExternalDocument('" 
+                                    + escapeForJs(finalName) + "', '" 
+                                    + escapeForJs(finalType) + "', '" 
+                                    + base64 + "');";
+                            webView.evaluateJavascript(js, null);
+                        });
+                    }
                 }
             } catch (Exception e) {
                 runOnUiThread(() -> Toast.makeText(MainActivity.this, "Import error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
@@ -384,8 +391,13 @@ public class MainActivity extends AppCompatActivity {
     public void onBackPressed() {
         if (webView != null) {
             webView.evaluateJavascript("window.handleAndroidBackPressed ? window.handleAndroidBackPressed() : false;", value -> {
-                if ("true".equals(value)) {
+                if ("true".equals(value) || "\"true\"".equals(value)) {
                     // Modal or action sheet was closed by web app
+                    return;
+                }
+                if ("\"exit\"".equals(value) || "exit".equals(value)) {
+                    // Lock screen is active, minimize app to background
+                    moveTaskToBack(true);
                     return;
                 }
                 runOnUiThread(() -> {
