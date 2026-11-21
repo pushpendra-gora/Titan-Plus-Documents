@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Titan Plus Documents</title>
+  <title>Titan Documents</title>
   <link rel="icon" type="image/png" href="icon.png">
   <link rel="apple-touch-icon" href="icon.png">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#5a45fe">
+  <meta name="theme-color" content="#5865E9">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +21,24 @@
 
       <!-- App Header -->
       <header class="app-header">
-        <h1 class="header-title">Titan Plus Documents</h1>
+        <div class="header-left">
+          <div class="header-logo-badge">
+            <img src="icon.png" alt="Titan Documents" class="header-logo-img">
+          </div>
+          <div class="header-title-wrap">
+            <h1 class="header-title">Titan Documents</h1>
+            <span class="header-subtitle">Secure Personal Vault</span>
+          </div>
+        </div>
+        <div class="header-right">
+          <button id="header-menu-btn" class="header-menu-btn" title="Options" aria-label="Menu options">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="5" r="2.2"></circle>
+              <circle cx="12" cy="12" r="2.2"></circle>
+              <circle cx="12" cy="19" r="2.2"></circle>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <!-- Document Picker Mode Banner (Shown when called from another app to pick/upload) -->
@@ -38,7 +55,7 @@
       <!-- Always Visible Search Bar -->
       <div id="search-bar-container" class="search-bar-container">
         <div class="search-input-box">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#788395" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
@@ -64,7 +81,7 @@
       <div class="storage-info-bar">
         <span id="doc-count-text">Loading documents...</span>
         <span class="safe-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
           100% Original Quality
@@ -79,7 +96,7 @@
       <!-- Empty State -->
       <div id="empty-state" class="empty-state hidden">
         <div class="empty-illustration">
-          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#a5b4fc" stroke-width="1.5">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#5865E9" stroke-width="1.6">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
             <polyline points="14 2 14 8 20 8"></polyline>
             <line x1="12" y1="18" x2="12" y2="12"></line>
@@ -196,7 +213,7 @@
     </div>
   </div>
 
-  <!-- Actions Bottom Sheet Modal (Triggered by 3-dots) -->
+  <!-- Actions Bottom Sheet Modal (Triggered by document card 3-dots) -->
   <div id="action-sheet-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
     <div class="action-sheet-card">
       <div class="action-sheet-handle"></div>
@@ -219,7 +236,7 @@
           </div>
           <div class="sheet-item-text">
             <strong>Preview Document</strong>
-            <small>Full resolution viewer</small>
+            <small>Full resolution viewer with pinch-zoom</small>
           </div>
         </button>
 
@@ -306,6 +323,237 @@
       <div class="rename-modal-footer">
         <button id="rename-cancel-btn" class="rename-btn-secondary">Cancel</button>
         <button id="rename-save-btn" class="rename-btn-primary">Save Name</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header 3-Dots Settings & Menu Modal -->
+  <div id="header-menu-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="header-menu-card">
+      <div class="action-sheet-handle"></div>
+      <div class="header-menu-header">
+        <div class="header-menu-info">
+          <h3>Settings & Info</h3>
+          <p>Titan Documents • Secure Vault</p>
+        </div>
+        <button id="header-menu-close-btn" class="close-pill-btn" aria-label="Close">&times;</button>
+      </div>
+
+      <div class="header-menu-list">
+        <!-- App Lock Item -->
+        <button id="menu-app-lock-btn" class="header-menu-item">
+          <div class="header-item-icon lock-icon-color">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+          </div>
+          <div class="header-item-content">
+            <div class="header-item-title-row">
+              <strong>App Lock</strong>
+              <span id="app-lock-status-badge" class="badge-lock-disabled">Disabled</span>
+            </div>
+            <small id="app-lock-status-desc">Require 4-digit PIN to open app</small>
+          </div>
+        </button>
+
+        <!-- About Item -->
+        <button id="menu-about-btn" class="header-menu-item">
+          <div class="header-item-icon about-icon-color">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="16" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12.01" y2="8"></line>
+            </svg>
+          </div>
+          <div class="header-item-content">
+            <strong>About Titan Documents</strong>
+            <small>Version, features & credits</small>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Setup Modal (Enable App Lock / Set PIN) -->
+  <div id="pin-setup-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="setup-pin-card">
+      <div class="setup-pin-icon-wrap">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#5865E9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+      </div>
+      <h3 id="pin-setup-title">Set App Lock PIN</h3>
+      <p id="pin-setup-subtitle" class="setup-pin-subtitle">Enter a 4-digit security PIN</p>
+
+      <div class="pin-dots-container" id="setup-pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <input type="password" id="setup-pin-hidden-input" inputmode="numeric" maxlength="4" autocomplete="off" style="position: absolute; opacity: 0; pointer-events: none;">
+
+      <!-- Tactile Numeric Keypad -->
+      <div class="setup-keypad">
+        <button class="keypad-btn setup-key" data-key="1">1</button>
+        <button class="keypad-btn setup-key" data-key="2">2</button>
+        <button class="keypad-btn setup-key" data-key="3">3</button>
+        <button class="keypad-btn setup-key" data-key="4">4</button>
+        <button class="keypad-btn setup-key" data-key="5">5</button>
+        <button class="keypad-btn setup-key" data-key="6">6</button>
+        <button class="keypad-btn setup-key" data-key="7">7</button>
+        <button class="keypad-btn setup-key" data-key="8">8</button>
+        <button class="keypad-btn setup-key" data-key="9">9</button>
+        <button class="keypad-action-btn" id="pin-setup-cancel-btn">Cancel</button>
+        <button class="keypad-btn setup-key" data-key="0">0</button>
+        <button class="keypad-btn keypad-backspace setup-key" data-key="backspace" aria-label="Backspace">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+            <line x1="18" y1="9" x2="12" y2="15"></line>
+            <line x1="12" y1="9" x2="18" y2="15"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PIN Disable Modal (Disable App Lock / Enter PIN to confirm) -->
+  <div id="pin-disable-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="setup-pin-card">
+      <div class="setup-pin-icon-wrap" style="background: #FEE2E2; color: #DC2626;">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#DC2626" stroke-width="2.2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+        </svg>
+      </div>
+      <h3>Disable App Lock</h3>
+      <p class="setup-pin-subtitle">Enter your current 4-digit PIN to turn off lock</p>
+
+      <div class="pin-dots-container" id="disable-pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <input type="password" id="disable-pin-hidden-input" inputmode="numeric" maxlength="4" autocomplete="off" style="position: absolute; opacity: 0; pointer-events: none;">
+
+      <div class="setup-keypad">
+        <button class="keypad-btn disable-key" data-key="1">1</button>
+        <button class="keypad-btn disable-key" data-key="2">2</button>
+        <button class="keypad-btn disable-key" data-key="3">3</button>
+        <button class="keypad-btn disable-key" data-key="4">4</button>
+        <button class="keypad-btn disable-key" data-key="5">5</button>
+        <button class="keypad-btn disable-key" data-key="6">6</button>
+        <button class="keypad-btn disable-key" data-key="7">7</button>
+        <button class="keypad-btn disable-key" data-key="8">8</button>
+        <button class="keypad-btn disable-key" data-key="9">9</button>
+        <button class="keypad-action-btn" id="pin-disable-cancel-btn">Cancel</button>
+        <button class="keypad-btn disable-key" data-key="0">0</button>
+        <button class="keypad-btn keypad-backspace disable-key" data-key="backspace" aria-label="Backspace">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+            <line x1="18" y1="9" x2="12" y2="15"></line>
+            <line x1="12" y1="9" x2="18" y2="15"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Titan Documents Modal -->
+  <div id="about-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="about-card">
+      <div class="about-logo-wrap">
+        <img src="icon.png" alt="Titan Documents" class="about-logo-img">
+      </div>
+      <h3 class="about-title">Titan Documents</h3>
+      <span class="about-version-badge">Version 1.0 • Titan Ecosystem</span>
+      <p class="about-desc">
+        A premium, offline-first personal document vault designed for private and lossless document storage with gesture pinch-zoom.
+      </p>
+
+      <div class="about-features-grid">
+        <div class="about-feature-item">
+          <span class="feature-icon">🔒</span>
+          <div>
+            <strong>100% Offline & Private</strong>
+            <p>Saved securely on device</p>
+          </div>
+        </div>
+        <div class="about-feature-item">
+          <span class="feature-icon">🔍</span>
+          <div>
+            <strong>Pinch-to-Zoom</strong>
+            <p>High-res photo & PDF zoom</p>
+          </div>
+        </div>
+        <div class="about-feature-item">
+          <span class="feature-icon">📑</span>
+          <div>
+            <strong>Mozilla PDF.js Engine</strong>
+            <p>Zero blank/white screens</p>
+          </div>
+        </div>
+        <div class="about-feature-item">
+          <span class="feature-icon">📲</span>
+          <div>
+            <strong>System File Provider</strong>
+            <p>Direct upload in other apps</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="about-footer">
+        <p class="about-copyright">Part of the Titan Ecosystem</p>
+        <button id="about-close-btn" class="about-close-btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Full-Screen App Lock Screen (Shown when App Lock is active) -->
+  <div id="app-lock-screen" class="lock-screen-overlay hidden">
+    <div class="lock-screen-content">
+      <div class="lock-avatar-wrap">
+        <img src="icon.png" alt="Titan Documents" class="lock-logo-img">
+      </div>
+      <h2 class="lock-title">Titan Documents</h2>
+      <p class="lock-subtitle" id="lock-screen-prompt">Enter PIN to unlock</p>
+
+      <!-- 4 PIN Dots -->
+      <div class="pin-dots-container" id="lock-pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <!-- Hidden input for desktop keyboard entry -->
+      <input type="password" id="lock-hidden-input" inputmode="numeric" maxlength="4" autocomplete="off" style="position: absolute; opacity: 0; pointer-events: none;">
+
+      <!-- Tactile Numeric Keypad -->
+      <div class="lock-keypad">
+        <button class="keypad-btn lock-key" data-key="1">1</button>
+        <button class="keypad-btn lock-key" data-key="2">2</button>
+        <button class="keypad-btn lock-key" data-key="3">3</button>
+        <button class="keypad-btn lock-key" data-key="4">4</button>
+        <button class="keypad-btn lock-key" data-key="5">5</button>
+        <button class="keypad-btn lock-key" data-key="6">6</button>
+        <button class="keypad-btn lock-key" data-key="7">7</button>
+        <button class="keypad-btn lock-key" data-key="8">8</button>
+        <button class="keypad-btn lock-key" data-key="9">9</button>
+        <div class="keypad-empty"></div>
+        <button class="keypad-btn lock-key" data-key="0">0</button>
+        <button class="keypad-btn keypad-backspace lock-key" data-key="backspace" title="Backspace" aria-label="Backspace">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
+            <line x1="18" y1="9" x2="12" y2="15"></line>
+            <line x1="12" y1="9" x2="18" y2="15"></line>
+          </svg>
+        </button>
       </div>
     </div>
   </div>

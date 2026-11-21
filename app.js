@@ -68,8 +68,51 @@ const renameCancelBtn = document.getElementById('rename-cancel-btn');
 const renameSaveBtn = document.getElementById('rename-save-btn');
 let currentRenameDoc = null;
 
+// Header 3-Dots Settings & Menu Elements
+const headerMenuBtn = document.getElementById('header-menu-btn');
+const headerMenuModal = document.getElementById('header-menu-modal');
+const headerMenuCloseBtn = document.getElementById('header-menu-close-btn');
+const menuAppLockBtn = document.getElementById('menu-app-lock-btn');
+const appLockStatusBadge = document.getElementById('app-lock-status-badge');
+const appLockStatusDesc = document.getElementById('app-lock-status-desc');
+const menuAboutBtn = document.getElementById('menu-about-btn');
+
+// About Modal Elements
+const aboutModal = document.getElementById('about-modal');
+const aboutCloseBtn = document.getElementById('about-close-btn');
+
+// App Lock Screen Elements
+const appLockScreen = document.getElementById('app-lock-screen');
+const lockScreenPrompt = document.getElementById('lock-screen-prompt');
+const lockPinDots = document.getElementById('lock-pin-dots');
+const lockHiddenInput = document.getElementById('lock-hidden-input');
+
+// PIN Setup Modal Elements
+const pinSetupModal = document.getElementById('pin-setup-modal');
+const pinSetupTitle = document.getElementById('pin-setup-title');
+const pinSetupSubtitle = document.getElementById('pin-setup-subtitle');
+const setupPinDots = document.getElementById('setup-pin-dots');
+const setupPinHiddenInput = document.getElementById('setup-pin-hidden-input');
+const pinSetupCancelBtn = document.getElementById('pin-setup-cancel-btn');
+
+// PIN Disable Modal Elements
+const pinDisableModal = document.getElementById('pin-disable-modal');
+const disablePinDots = document.getElementById('disable-pin-dots');
+const disablePinHiddenInput = document.getElementById('disable-pin-hidden-input');
+const pinDisableCancelBtn = document.getElementById('pin-disable-cancel-btn');
+
+// App Lock State Variables
+const STORAGE_LOCK_ENABLED = 'titan_doc_app_lock_enabled';
+const STORAGE_LOCK_PIN = 'titan_doc_app_lock_pin';
+
+let currentEnteredPin = '';
+let setupStep = 1; // 1: enter first time, 2: confirm
+let setupFirstPin = '';
+let disableEnteredPin = '';
+
 // Initialize App
 document.addEventListener('DOMContentLoaded', async () => {
+  initAppLock();
   await initDatabase();
   await cleanOldSeedData();
   await renderDocuments();
@@ -142,7 +185,7 @@ window.importExternalDocument = async function(filename, mimeType, base64Data) {
     };
 
     await saveDocumentToDB(doc);
-    showToast(`✓ "${filename}" saved to Titan Plus Documents!`);
+    showToast(`✓ "${filename}" saved to Titan Documents!`);
     await renderDocuments();
   } catch (err) {
     console.error('Import error:', err);
@@ -1338,16 +1381,337 @@ function bindEventListeners() {
     });
   }
 
+  // Header 3-Dots Settings & Menu Listeners
+  if (headerMenuBtn) {
+    headerMenuBtn.addEventListener('click', openHeaderMenu);
+  }
+  if (headerMenuCloseBtn) {
+    headerMenuCloseBtn.addEventListener('click', closeHeaderMenu);
+  }
+  if (headerMenuModal) {
+    headerMenuModal.addEventListener('click', (e) => {
+      if (e.target === headerMenuModal) closeHeaderMenu();
+    });
+  }
+  if (menuAppLockBtn) {
+    menuAppLockBtn.addEventListener('click', () => {
+      closeHeaderMenu();
+      if (isAppLockEnabled()) {
+        openPinDisableModal();
+      } else {
+        openPinSetupModal();
+      }
+    });
+  }
+  if (menuAboutBtn) {
+    menuAboutBtn.addEventListener('click', () => {
+      closeHeaderMenu();
+      openAboutModal();
+    });
+  }
 
-  // Keyboard escape
+  // About Modal Listeners
+  if (aboutCloseBtn) {
+    aboutCloseBtn.addEventListener('click', closeAboutModal);
+  }
+  if (aboutModal) {
+    aboutModal.addEventListener('click', (e) => {
+      if (e.target === aboutModal) closeAboutModal();
+    });
+  }
+
+  // PIN Setup Modal Listeners
+  if (pinSetupCancelBtn) {
+    pinSetupCancelBtn.addEventListener('click', closePinSetupModal);
+  }
+  if (pinSetupModal) {
+    pinSetupModal.addEventListener('click', (e) => {
+      if (e.target === pinSetupModal) closePinSetupModal();
+    });
+  }
+
+  // PIN Disable Modal Listeners
+  if (pinDisableCancelBtn) {
+    pinDisableCancelBtn.addEventListener('click', closePinDisableModal);
+  }
+  if (pinDisableModal) {
+    pinDisableModal.addEventListener('click', (e) => {
+      if (e.target === pinDisableModal) closePinDisableModal();
+    });
+  }
+
+  // Keypad Clicks for Lock Screen
+  document.querySelectorAll('.lock-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      handleLockKeypress(btn.dataset.key);
+    });
+  });
+
+  // Keypad Clicks for Setup PIN
+  document.querySelectorAll('.setup-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      handleSetupKeypress(btn.dataset.key);
+    });
+  });
+
+  // Keypad Clicks for Disable PIN
+  document.querySelectorAll('.disable-key').forEach(btn => {
+    btn.addEventListener('click', () => {
+      handleDisableKeypress(btn.dataset.key);
+    });
+  });
+
+  // Keyboard support for all PIN screens and shortcuts
   window.addEventListener('keydown', (e) => {
+    // If Lock Screen is active
+    if (appLockScreen && !appLockScreen.classList.contains('hidden')) {
+      if (e.key >= '0' && e.key <= '9') {
+        handleLockKeypress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleLockKeypress('backspace');
+      }
+      return;
+    }
+
+    // If Setup PIN modal is active
+    if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
+      if (e.key >= '0' && e.key <= '9') {
+        handleSetupKeypress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleSetupKeypress('backspace');
+      } else if (e.key === 'Escape') {
+        closePinSetupModal();
+      }
+      return;
+    }
+
+    // If Disable PIN modal is active
+    if (pinDisableModal && !pinDisableModal.classList.contains('hidden')) {
+      if (e.key >= '0' && e.key <= '9') {
+        handleDisableKeypress(e.key);
+      } else if (e.key === 'Backspace') {
+        handleDisableKeypress('backspace');
+      } else if (e.key === 'Escape') {
+        closePinDisableModal();
+      }
+      return;
+    }
+
     if (e.key === 'Escape') {
       closePreviewModal();
       closeShareFallback();
       closeActionSheet();
       closeRenameModal();
+      closeHeaderMenu();
+      closeAboutModal();
     }
   });
+}
+
+// ----------------------------------------------------
+// App Lock & Settings Menu Functions
+// ----------------------------------------------------
+function isAppLockEnabled() {
+  return localStorage.getItem(STORAGE_LOCK_ENABLED) === 'true' && Boolean(localStorage.getItem(STORAGE_LOCK_PIN));
+}
+
+function updateAppLockMenuUI() {
+  const enabled = isAppLockEnabled();
+  if (appLockStatusBadge) {
+    if (enabled) {
+      appLockStatusBadge.textContent = 'Enabled';
+      appLockStatusBadge.className = 'badge-lock-enabled';
+      if (appLockStatusDesc) appLockStatusDesc.textContent = 'Tap to disable or change PIN';
+    } else {
+      appLockStatusBadge.textContent = 'Disabled';
+      appLockStatusBadge.className = 'badge-lock-disabled';
+      if (appLockStatusDesc) appLockStatusDesc.textContent = 'Require 4-digit PIN to open app';
+    }
+  }
+}
+
+function initAppLock() {
+  updateAppLockMenuUI();
+  if (isAppLockEnabled()) {
+    showAppLockScreen();
+  }
+}
+
+function showAppLockScreen() {
+  currentEnteredPin = '';
+  updatePinDots(lockPinDots, 0);
+  if (appLockScreen) appLockScreen.classList.remove('hidden');
+}
+
+function hideAppLockScreen() {
+  if (appLockScreen) appLockScreen.classList.add('hidden');
+  currentEnteredPin = '';
+}
+
+function updatePinDots(container, count) {
+  if (!container) return;
+  const dots = container.querySelectorAll('.pin-dot');
+  dots.forEach((dot, index) => {
+    if (index < count) {
+      dot.classList.add('filled');
+    } else {
+      dot.classList.remove('filled');
+    }
+  });
+}
+
+function handleLockKeypress(key) {
+  if (key === 'backspace') {
+    if (currentEnteredPin.length > 0) {
+      currentEnteredPin = currentEnteredPin.slice(0, -1);
+      updatePinDots(lockPinDots, currentEnteredPin.length);
+    }
+    return;
+  }
+
+  if (currentEnteredPin.length < 4 && /^[0-9]$/.test(key)) {
+    currentEnteredPin += key;
+    updatePinDots(lockPinDots, currentEnteredPin.length);
+
+    if (currentEnteredPin.length === 4) {
+      const storedPin = localStorage.getItem(STORAGE_LOCK_PIN);
+      if (currentEnteredPin === storedPin) {
+        showToast('✓ Welcome back!');
+        hideAppLockScreen();
+      } else {
+        if (lockPinDots) lockPinDots.classList.add('shake');
+        showToast('Incorrect PIN. Try again.');
+        setTimeout(() => {
+          if (lockPinDots) lockPinDots.classList.remove('shake');
+          currentEnteredPin = '';
+          updatePinDots(lockPinDots, 0);
+        }, 500);
+      }
+    }
+  }
+}
+
+// PIN Setup Flow
+function openPinSetupModal() {
+  setupStep = 1;
+  setupFirstPin = '';
+  currentEnteredPin = '';
+  if (pinSetupTitle) pinSetupTitle.textContent = 'Set App Lock PIN';
+  if (pinSetupSubtitle) pinSetupSubtitle.textContent = 'Enter a 4-digit security PIN';
+  updatePinDots(setupPinDots, 0);
+  if (pinSetupModal) pinSetupModal.classList.remove('hidden');
+}
+
+function closePinSetupModal() {
+  if (pinSetupModal) pinSetupModal.classList.add('hidden');
+  currentEnteredPin = '';
+  setupFirstPin = '';
+  setupStep = 1;
+}
+
+function handleSetupKeypress(key) {
+  if (key === 'backspace') {
+    if (currentEnteredPin.length > 0) {
+      currentEnteredPin = currentEnteredPin.slice(0, -1);
+      updatePinDots(setupPinDots, currentEnteredPin.length);
+    }
+    return;
+  }
+
+  if (currentEnteredPin.length < 4 && /^[0-9]$/.test(key)) {
+    currentEnteredPin += key;
+    updatePinDots(setupPinDots, currentEnteredPin.length);
+
+    if (currentEnteredPin.length === 4) {
+      if (setupStep === 1) {
+        setupFirstPin = currentEnteredPin;
+        currentEnteredPin = '';
+        setupStep = 2;
+        if (pinSetupTitle) pinSetupTitle.textContent = 'Confirm Your PIN';
+        if (pinSetupSubtitle) pinSetupSubtitle.textContent = 'Re-enter the same 4-digit PIN to confirm';
+        setTimeout(() => updatePinDots(setupPinDots, 0), 200);
+      } else if (setupStep === 2) {
+        if (currentEnteredPin === setupFirstPin) {
+          localStorage.setItem(STORAGE_LOCK_PIN, currentEnteredPin);
+          localStorage.setItem(STORAGE_LOCK_ENABLED, 'true');
+          updateAppLockMenuUI();
+          closePinSetupModal();
+          showToast('✓ App Lock enabled successfully!');
+        } else {
+          if (setupPinDots) setupPinDots.classList.add('shake');
+          showToast('PIN mismatch. Please start again.');
+          setTimeout(() => {
+            if (setupPinDots) setupPinDots.classList.remove('shake');
+            openPinSetupModal();
+          }, 600);
+        }
+      }
+    }
+  }
+}
+
+// PIN Disable Flow
+function openPinDisableModal() {
+  disableEnteredPin = '';
+  updatePinDots(disablePinDots, 0);
+  if (pinDisableModal) pinDisableModal.classList.remove('hidden');
+}
+
+function closePinDisableModal() {
+  if (pinDisableModal) pinDisableModal.classList.add('hidden');
+  disableEnteredPin = '';
+}
+
+function handleDisableKeypress(key) {
+  if (key === 'backspace') {
+    if (disableEnteredPin.length > 0) {
+      disableEnteredPin = disableEnteredPin.slice(0, -1);
+      updatePinDots(disablePinDots, disableEnteredPin.length);
+    }
+    return;
+  }
+
+  if (disableEnteredPin.length < 4 && /^[0-9]$/.test(key)) {
+    disableEnteredPin += key;
+    updatePinDots(disablePinDots, disableEnteredPin.length);
+
+    if (disableEnteredPin.length === 4) {
+      const storedPin = localStorage.getItem(STORAGE_LOCK_PIN);
+      if (disableEnteredPin === storedPin) {
+        localStorage.setItem(STORAGE_LOCK_ENABLED, 'false');
+        localStorage.removeItem(STORAGE_LOCK_PIN);
+        updateAppLockMenuUI();
+        closePinDisableModal();
+        showToast('✓ App Lock disabled.');
+      } else {
+        if (disablePinDots) disablePinDots.classList.add('shake');
+        showToast('Incorrect PIN.');
+        setTimeout(() => {
+          if (disablePinDots) disablePinDots.classList.remove('shake');
+          disableEnteredPin = '';
+          updatePinDots(disablePinDots, 0);
+        }, 500);
+      }
+    }
+  }
+}
+
+// Header Menu Actions
+function openHeaderMenu() {
+  updateAppLockMenuUI();
+  if (headerMenuModal) headerMenuModal.classList.remove('hidden');
+}
+
+function closeHeaderMenu() {
+  if (headerMenuModal) headerMenuModal.classList.add('hidden');
+}
+
+function openAboutModal() {
+  if (aboutModal) aboutModal.classList.remove('hidden');
+}
+
+function closeAboutModal() {
+  if (aboutModal) aboutModal.classList.add('hidden');
 }
 
 function showToast(msg) {
@@ -1416,6 +1780,26 @@ function blobToBase64(blob) {
 
 // Android Hardware / Gesture Back Button Interceptor
 window.handleAndroidBackPressed = function() {
+  // If app is currently locked, Back should not bypass the lock screen
+  if (appLockScreen && !appLockScreen.classList.contains('hidden')) {
+    return false;
+  }
+  if (pinSetupModal && !pinSetupModal.classList.contains('hidden')) {
+    closePinSetupModal();
+    return true;
+  }
+  if (pinDisableModal && !pinDisableModal.classList.contains('hidden')) {
+    closePinDisableModal();
+    return true;
+  }
+  if (aboutModal && !aboutModal.classList.contains('hidden')) {
+    closeAboutModal();
+    return true;
+  }
+  if (headerMenuModal && !headerMenuModal.classList.contains('hidden')) {
+    closeHeaderMenu();
+    return true;
+  }
   if (previewModal && !previewModal.classList.contains('hidden')) {
     closePreviewModal();
     return true;

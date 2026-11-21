@@ -1,11 +1,11 @@
 {
-  "name": "Titan Plus Documents",
-  "short_name": "Titan Plus",
-  "description": "Secure Local Storage Document Manager with Original Quality",
+  "name": "Titan Documents",
+  "short_name": "Titan Docs",
+  "description": "Premium Offline Personal Document Vault with Original Quality Storage",
   "start_url": "index.html",
   "display": "standalone",
-  "background_color": "#f2f4f8",
-  "theme_color": "#5c42f6",
+  "background_color": "#F8F9FD",
+  "theme_color": "#5865E9",
   "icons": [
     {
       "src": "icon.png",

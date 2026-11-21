@@ -5,6 +5,8 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -70,7 +72,9 @@ public class MainActivity extends AppCompatActivity {
             isPickerMode = true;
         }
 
+        getWindow().setBackgroundDrawable(new ColorDrawable(Color.parseColor("#F8F9FD")));
         webView = new WebView(this);
+        webView.setBackgroundColor(Color.parseColor("#F8F9FD"));
         setContentView(webView);
 
         setupWebView();
@@ -210,7 +214,7 @@ public class MainActivity extends AppCompatActivity {
                         ContentValues values = new ContentValues();
                         values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
                         values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
-                        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TitanPlusDocuments");
+                        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TitanDocuments");
                         Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                         if (uri != null) {
                             try (OutputStream os = getContentResolver().openOutputStream(uri)) {

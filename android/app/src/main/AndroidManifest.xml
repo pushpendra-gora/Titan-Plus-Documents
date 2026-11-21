@@ -40,14 +40,14 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
 
-            <!-- Support sharing documents to Titan Plus Documents from other apps -->
-            <intent-filter android:label="Save to Titan Plus Documents">
+            <!-- Support sharing documents to Titan Documents from other apps -->
+            <intent-filter android:label="Save to Titan Documents">
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />
             </intent-filter>
 
-            <intent-filter android:label="Save to Titan Plus Documents">
+            <intent-filter android:label="Save to Titan Documents">
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="*/*" />

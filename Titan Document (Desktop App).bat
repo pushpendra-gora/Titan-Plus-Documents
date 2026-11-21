@@ -1,6 +1,6 @@
 @echo off
-title Titan Plus Documents
-echo Starting Titan Plus Documents...
+title Titan Documents
+echo Starting Titan Documents...
 
 :: Check if server is running on 3000
 netstat -ano | findstr :3000 >nul
@@ -22,4 +22,3 @@ if exist "C:\Program Files\Google\Chrome\Application\chrome.exe" (
 
 :: Fallback
 start http://localhost:3000
-

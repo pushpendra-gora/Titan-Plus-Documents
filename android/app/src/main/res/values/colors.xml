@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_primary">#5c42f6</color>
-    <color name="bg_page">#f2f4f8</color>
+    <color name="primary">#5865E9</color>
+    <color name="primary_light">#EEF1FF</color>
+    <color name="bg_page">#F8F9FD</color>
+    <color name="card_bg">#FFFFFF</color>
+    <color name="main_text">#151B2D</color>
+    <color name="secondary_text">#788395</color>
+    <color name="border">#E8EBF3</color>
     <color name="white">#FFFFFF</color>
 </resources>
