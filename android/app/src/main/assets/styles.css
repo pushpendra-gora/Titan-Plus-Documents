@@ -687,6 +687,7 @@ body {
 .lock-icon-color { background: var(--primary-light); color: var(--primary-color); }
 .zip-icon-color { background: #EDE9FE; color: #7C3AED; }
 .drive-icon-color { background: #E6F4EA; color: #0F9D58; }
+.privacy-icon-color { background: #E8F8F0; color: #16A05A; }
 .about-icon-color { background: #E0F2FE; color: #0284C7; }
 
 .sheet-item-text, .header-item-content {
@@ -1573,6 +1574,58 @@ body {
 
 .about-close-btn:hover {
   background: var(--primary-hover);
+}
+
+/* Privacy Policy Modal Styles */
+.privacy-card {
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.privacy-content-scroll {
+  overflow-y: auto;
+  max-height: 48vh;
+  padding: 4px 6px 12px;
+  margin-bottom: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.privacy-content-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.privacy-content-scroll::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+.privacy-section {
+  background: var(--bg-page);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+
+.privacy-section h4 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.privacy-section p {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
 }
 
 /* Toast */

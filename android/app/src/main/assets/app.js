@@ -78,10 +78,15 @@ const menuUploadDriveBtn = document.getElementById('menu-upload-drive-btn');
 const appLockStatusBadge = document.getElementById('app-lock-status-badge');
 const appLockStatusDesc = document.getElementById('app-lock-status-desc');
 const menuAboutBtn = document.getElementById('menu-about-btn');
+const menuPrivacyBtn = document.getElementById('menu-privacy-btn');
 
 // About Modal Elements
 const aboutModal = document.getElementById('about-modal');
 const aboutCloseBtn = document.getElementById('about-close-btn');
+
+// Privacy Policy Modal Elements
+const privacyModal = document.getElementById('privacy-modal');
+const privacyCloseBtn = document.getElementById('privacy-close-btn');
 
 // App Lock Screen Elements
 const appLockScreen = document.getElementById('app-lock-screen');
@@ -1417,10 +1422,26 @@ function bindEventListeners() {
       uploadAllFilesToGoogleDrive();
     });
   }
+  if (menuPrivacyBtn) {
+    menuPrivacyBtn.addEventListener('click', () => {
+      closeHeaderMenu();
+      openPrivacyModal();
+    });
+  }
   if (menuAboutBtn) {
     menuAboutBtn.addEventListener('click', () => {
       closeHeaderMenu();
       openAboutModal();
+    });
+  }
+
+  // Privacy Modal Listeners
+  if (privacyCloseBtn) {
+    privacyCloseBtn.addEventListener('click', closePrivacyModal);
+  }
+  if (privacyModal) {
+    privacyModal.addEventListener('click', (e) => {
+      if (e.target === privacyModal) closePrivacyModal();
     });
   }
 
@@ -1728,6 +1749,14 @@ function closeAboutModal() {
   if (aboutModal) aboutModal.classList.add('hidden');
 }
 
+function openPrivacyModal() {
+  if (privacyModal) privacyModal.classList.remove('hidden');
+}
+
+function closePrivacyModal() {
+  if (privacyModal) privacyModal.classList.add('hidden');
+}
+
 // ----------------------------------------------------
 // All-Files ZIP Backup & Google Drive Export
 // ----------------------------------------------------
@@ -1933,6 +1962,10 @@ window.handleAndroidBackPressed = function() {
   }
   if (aboutModal && !aboutModal.classList.contains('hidden')) {
     closeAboutModal();
+    return true;
+  }
+  if (privacyModal && !privacyModal.classList.contains('hidden')) {
+    closePrivacyModal();
     return true;
   }
   if (headerMenuModal && !headerMenuModal.classList.contains('hidden')) {
