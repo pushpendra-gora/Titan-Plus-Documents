@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity {
                         ContentValues values = new ContentValues();
                         values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
                         values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType);
-                        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TitanDocument");
+                        values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TitanPlusDocuments");
                         Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
                         if (uri != null) {
                             try (OutputStream os = getContentResolver().openOutputStream(uri)) {
@@ -309,8 +309,20 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (webView.canGoBack()) {
-            webView.goBack();
+        if (webView != null) {
+            webView.evaluateJavascript("window.handleAndroidBackPressed ? window.handleAndroidBackPressed() : false;", value -> {
+                if ("true".equals(value)) {
+                    // Modal or action sheet was closed by web app
+                    return;
+                }
+                runOnUiThread(() -> {
+                    if (webView.canGoBack()) {
+                        webView.goBack();
+                    } else {
+                        MainActivity.super.onBackPressed();
+                    }
+                });
+            });
         } else {
             super.onBackPressed();
         }

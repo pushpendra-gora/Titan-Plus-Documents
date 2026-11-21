@@ -409,12 +409,25 @@ body {
 }
 
 /* Bottom Action Sheet (Triggered by 3-dots) */
+#action-sheet-modal {
+  padding: 0;
+  align-items: flex-end;
+}
+
+@media (min-width: 640px) {
+  #action-sheet-modal {
+    padding: 16px;
+    align-items: center;
+  }
+}
+
 .action-sheet-card {
   background: #ffffff;
   width: 100%;
   max-width: 440px;
   border-radius: 26px 26px 0 0;
   padding: 16px 20px 28px;
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
   align-self: flex-end;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
   animation: slideUpSheet 0.24s cubic-bezier(0.16, 1, 0.3, 1);

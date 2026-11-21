@@ -101,16 +101,34 @@ async function selectDocumentForCallingApp(doc) {
   showToast(`Selected "${doc.name}"`);
 }
 
+// Memory management for image thumbnail Object URLs
+const activeThumbUrls = new Set();
+function revokeActiveThumbUrls() {
+  activeThumbUrls.forEach(url => {
+    try { URL.revokeObjectURL(url); } catch (e) {}
+  });
+  activeThumbUrls.clear();
+}
+
+function base64ToBlob(base64Data, contentType) {
+  const sliceSize = 1024;
+  const byteCharacters = atob(base64Data);
+  const byteArrays = [];
+  for (let offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+    const slice = byteCharacters.slice(offset, offset + sliceSize);
+    const byteNumbers = new Array(slice.length);
+    for (let i = 0; i < slice.length; i++) {
+      byteNumbers[i] = slice.charCodeAt(i);
+    }
+    byteArrays.push(new Uint8Array(byteNumbers));
+  }
+  return new Blob(byteArrays, { type: contentType || 'application/octet-stream' });
+}
+
 // Automatically import shared documents from other apps (WhatsApp, Chrome, etc.)
 window.importExternalDocument = async function(filename, mimeType, base64Data) {
   try {
-    const byteCharacters = atob(base64Data);
-    const byteNumbers = new Array(byteCharacters.length);
-    for (let i = 0; i < byteCharacters.length; i++) {
-      byteNumbers[i] = byteCharacters.charCodeAt(i);
-    }
-    const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { type: mimeType });
+    const blob = base64ToBlob(base64Data, mimeType);
 
     const doc = {
       id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9),
@@ -124,7 +142,7 @@ window.importExternalDocument = async function(filename, mimeType, base64Data) {
     };
 
     await saveDocumentToDB(doc);
-    showToast(`✓ "${filename}" saved to Titan Document!`);
+    showToast(`✓ "${filename}" saved to Titan Plus Documents!`);
     await renderDocuments();
   } catch (err) {
     console.error('Import error:', err);
@@ -222,6 +240,7 @@ async function renderDocuments(filterQuery = '') {
     ? docs.filter(d => d.name.toLowerCase().includes(query))
     : docs;
 
+  revokeActiveThumbUrls();
   docContainer.innerHTML = '';
 
   if (filteredDocs.length === 0) {
@@ -321,6 +340,7 @@ function getBadgeInfo(doc) {
     let thumbUrl = '';
     try {
       thumbUrl = URL.createObjectURL(doc.blob);
+      activeThumbUrls.add(thumbUrl);
     } catch (e) {
       thumbUrl = '';
     }
@@ -500,9 +520,9 @@ function closeRenameModal() {
 async function saveRenameDocument() {
   if (!currentRenameDoc) return;
 
-  const rawNewName = renameInput.value.trim();
-  if (!rawNewName) {
-    showToast('File name cannot be empty');
+  const rawNewName = renameInput.value.trim().replace(/[\\/:*?"<>|]/g, '_');
+  if (!rawNewName || rawNewName === '.') {
+    showToast('Please enter a valid file name');
     renameInput.focus();
     return;
   }
@@ -789,7 +809,12 @@ function setupPinchToZoom(container, target) {
     if (e.touches.length < 2) {
       isPinching = false;
     }
-    if (e.touches.length === 0) {
+    if (e.touches.length === 1 && scale > 1.05) {
+      // Seamlessly transition from 2-finger pinch to 1-finger pan without lifting all fingers
+      isPanning = true;
+      startX = e.touches[0].clientX - panX;
+      startY = e.touches[0].clientY - panY;
+    } else if (e.touches.length === 0) {
       isPanning = false;
       if (scale < 1.05) {
         scale = 1;
@@ -854,6 +879,8 @@ function setupPinchToZoom(container, target) {
       panY = 0;
     } else {
       scale = 2.4;
+      panX = 0;
+      panY = 0;
     }
     updateTransform(true);
   });
@@ -958,8 +985,15 @@ async function renderPdfDocument(doc, container) {
     // Attach native 2-finger pinch-zoom & 1-finger pan to PDF canvas
     const pdfPinchController = setupPinchToZoom(canvasContainer, canvas);
     currentPreviewController = pdfPinchController;
+    let currentRenderTask = null;
 
     async function renderPage(num) {
+      if (currentRenderTask) {
+        try {
+          currentRenderTask.cancel();
+        } catch (ignored) {}
+      }
+
       try {
         const page = await pdfDoc.getPage(num);
         // Base scale 2.0 provides ultra-sharp, high-DPI text resolution when pinching to zoom
@@ -971,7 +1005,10 @@ async function renderPdfDocument(doc, container) {
           canvasContext: ctx,
           viewport: viewport
         };
-        await page.render(renderContext).promise;
+        currentRenderTask = page.render(renderContext);
+        await currentRenderTask.promise;
+        currentRenderTask = null;
+
         pageNumText.textContent = `Page ${num} of ${totalPages}`;
         prevBtn.disabled = num <= 1;
         nextBtn.disabled = num >= totalPages;
@@ -980,6 +1017,9 @@ async function renderPdfDocument(doc, container) {
           pdfPinchController.reset();
         }
       } catch (e) {
+        if (e && e.name === 'RenderingCancelledException') {
+          return; // Expected cancellation on rapid page flips
+        }
         console.error('Page render error:', e);
       }
     }
@@ -1025,12 +1065,6 @@ function renderPdfFallback(doc, container) {
   `;
   container.querySelector('#modal-fallback-share').onclick = () => handleShare(doc);
   container.querySelector('#modal-fallback-dl').onclick = () => downloadOriginalDocument(doc);
-}
-
-function closePreviewModal() {
-  previewModal.classList.add('hidden');
-  modalBody.innerHTML = '';
-  currentPreviewDoc = null;
 }
 
 // ----------------------------------------------------
@@ -1328,8 +1362,8 @@ function showToast(msg) {
 function formatFileSize(bytes) {
   if (!bytes || bytes === 0) return '0 KB';
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.min(Math.floor(Math.log(bytes) / Math.log(k)), sizes.length - 1);
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
@@ -1379,4 +1413,25 @@ function blobToBase64(blob) {
     reader.readAsDataURL(blob);
   });
 }
+
+// Android Hardware / Gesture Back Button Interceptor
+window.handleAndroidBackPressed = function() {
+  if (previewModal && !previewModal.classList.contains('hidden')) {
+    closePreviewModal();
+    return true;
+  }
+  if (actionSheetModal && !actionSheetModal.classList.contains('hidden')) {
+    closeActionSheet();
+    return true;
+  }
+  if (renameModal && !renameModal.classList.contains('hidden')) {
+    closeRenameModal();
+    return true;
+  }
+  if (shareFallbackModal && !shareFallbackModal.classList.contains('hidden')) {
+    closeShareFallback();
+    return true;
+  }
+  return false;
+};
 
