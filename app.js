@@ -74,7 +74,6 @@ const headerMenuModal = document.getElementById('header-menu-modal');
 const headerMenuCloseBtn = document.getElementById('header-menu-close-btn');
 const menuAppLockBtn = document.getElementById('menu-app-lock-btn');
 const menuBackupZipBtn = document.getElementById('menu-backup-zip-btn');
-const menuShareZipBtn = document.getElementById('menu-share-zip-btn');
 const appLockStatusBadge = document.getElementById('app-lock-status-badge');
 const appLockStatusDesc = document.getElementById('app-lock-status-desc');
 const menuAboutBtn = document.getElementById('menu-about-btn');
@@ -1267,17 +1266,10 @@ function closeDeleteConfirmModal() {
 // ----------------------------------------------------
 // Backup & Export Confirmation Dialog Logic
 // ----------------------------------------------------
-function openBackupConfirmModal(action) {
-  pendingBackupAction = action; // 'backup' or 'share'
-  if (action === 'backup') {
-    if (backupDialogTitle) backupDialogTitle.textContent = 'Backup All Files (.ZIP)';
-    if (backupDialogMsg) backupDialogMsg.textContent = 'Package all stored documents into a single lossless ZIP archive and save it to your device?';
-    if (backupConfirmBtn) backupConfirmBtn.textContent = 'Create Backup (.ZIP)';
-  } else {
-    if (backupDialogTitle) backupDialogTitle.textContent = 'Share All Files (.ZIP)';
-    if (backupDialogMsg) backupDialogMsg.textContent = 'Package all stored documents into a ZIP archive and open the share sheet to send or save via any app?';
-    if (backupConfirmBtn) backupConfirmBtn.textContent = 'Share ZIP';
-  }
+function openBackupConfirmModal() {
+  if (backupDialogTitle) backupDialogTitle.textContent = 'Backup All Files (.ZIP)';
+  if (backupDialogMsg) backupDialogMsg.textContent = 'Package all documents into a lossless ZIP archive? It will be auto-saved to your Downloads and opened in the share sheet.';
+  if (backupConfirmBtn) backupConfirmBtn.textContent = 'Backup & Share';
   if (backupConfirmModal) backupConfirmModal.classList.remove('hidden');
 }
 
@@ -1463,19 +1455,14 @@ function bindEventListeners() {
     });
   }
 
-  // Backup & Share ZIP Confirmation Modal Listeners
+  // Backup ZIP Confirmation Modal Listeners
   if (backupCancelBtn) {
     backupCancelBtn.addEventListener('click', closeBackupConfirmModal);
   }
   if (backupConfirmBtn) {
     backupConfirmBtn.addEventListener('click', () => {
-      const action = pendingBackupAction;
       closeBackupConfirmModal();
-      if (action === 'backup') {
-        backupAllFilesIntoZip();
-      } else if (action === 'share') {
-        shareAllFilesAsZip();
-      }
+      backupAllFilesIntoZip();
     });
   }
   if (backupConfirmModal) {
@@ -1509,13 +1496,7 @@ function bindEventListeners() {
   if (menuBackupZipBtn) {
     menuBackupZipBtn.addEventListener('click', () => {
       closeHeaderMenu();
-      openBackupConfirmModal('backup');
-    });
-  }
-  if (menuShareZipBtn) {
-    menuShareZipBtn.addEventListener('click', () => {
-      closeHeaderMenu();
-      openBackupConfirmModal('share');
+      openBackupConfirmModal();
     });
   }
   if (menuPrivacyBtn) {
@@ -1917,16 +1898,21 @@ async function backupAllFilesIntoZip() {
   try {
     showToast('Creating ZIP backup of all files...');
     const { blob, filename, count } = await generateAllFilesZip();
-    showToast(`Prepared ${count} files. Saving ZIP...`);
+    showToast(`Prepared ${count} files. Packaging backup...`);
 
-    if (window.TitanAndroid && window.TitanAndroid.saveToDownloads) {
-      const b64 = await blobToBase64(blob);
-      window.TitanAndroid.saveToDownloads(b64, filename, 'application/zip');
-      showToast(`Backup downloaded: ${filename}`);
-      return;
+    const b64 = await blobToBase64(blob);
+
+    if (window.TitanAndroid) {
+      if (typeof window.TitanAndroid.backupAndShareZip === 'function') {
+        window.TitanAndroid.backupAndShareZip(b64, filename, 'application/zip');
+        return;
+      } else if (typeof window.TitanAndroid.shareAllFilesZip === 'function') {
+        window.TitanAndroid.shareAllFilesZip(b64, filename, 'application/zip');
+        return;
+      }
     }
 
-    // Web browser fallback
+    // Web browser fallback: Auto-download AND trigger Web Share if available
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1935,6 +1921,18 @@ async function backupAllFilesIntoZip() {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+    if (navigator.share && navigator.canShare) {
+      const file = new File([blob], filename, { type: 'application/zip' });
+      if (navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: filename,
+          text: 'Titan Documents ZIP Backup',
+          files: [file]
+        });
+        return;
+      }
+    }
     showToast(`Backup downloaded: ${filename}`);
   } catch (err) {
     console.error('Backup ZIP error:', err);
@@ -1942,53 +1940,8 @@ async function backupAllFilesIntoZip() {
   }
 }
 
-async function shareAllFilesAsZip() {
-  try {
-    showToast('Creating ZIP archive of all files...');
-    const { blob, filename, count } = await generateAllFilesZip();
-    showToast(`Prepared ${count} files. Opening Share...`);
-
-    if (window.TitanAndroid && (window.TitanAndroid.shareAllFilesZip || window.TitanAndroid.uploadToGoogleDrive)) {
-      const b64 = await blobToBase64(blob);
-      if (window.TitanAndroid.shareAllFilesZip) {
-        window.TitanAndroid.shareAllFilesZip(b64, filename, 'application/zip');
-      } else {
-        window.TitanAndroid.uploadToGoogleDrive(b64, filename, 'application/zip');
-      }
-      return;
-    }
-
-    // Web Share API fallback if supported
-    if (navigator.share && navigator.canShare) {
-      const file = new File([blob], filename, { type: 'application/zip' });
-      if (navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: filename,
-          text: 'Titan Documents ZIP Archive',
-          files: [file]
-        });
-        return;
-      }
-    }
-
-    // Browser fallback: download file
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(url), 2000);
-    showToast(`ZIP downloaded: ${filename}`);
-  } catch (err) {
-    console.error('Share ZIP error:', err);
-    showToast(err.message || 'Failed to export ZIP.');
-  }
-}
-
-// Backward compatibility
-const uploadAllFilesToGoogleDrive = shareAllFilesAsZip;
+const shareAllFilesAsZip = backupAllFilesIntoZip;
+const uploadAllFilesToGoogleDrive = backupAllFilesIntoZip;
 
 function showToast(msg) {
   toastEl.textContent = msg;

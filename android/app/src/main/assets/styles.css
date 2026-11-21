@@ -802,12 +802,18 @@ body {
   display: flex;
   flex-direction: column;
   border: var(--card-border);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes scaleIn {
-  0% { transform: scale(0.95); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modal-header {
@@ -1080,7 +1086,7 @@ body {
   padding: 24px;
   border: var(--card-border);
   box-shadow: 0 25px 60px -15px rgba(21, 27, 45, 0.25);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .rename-modal-header {
@@ -1189,7 +1195,7 @@ body {
   padding: 24px;
   box-shadow: 0 25px 60px -15px rgba(21, 27, 45, 0.25);
   border: var(--card-border);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .share-header {
@@ -1280,7 +1286,7 @@ body {
   text-align: center;
   border: var(--card-border);
   box-shadow: 0 25px 60px -15px rgba(21, 27, 45, 0.25);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .setup-pin-icon-wrap {
@@ -1474,7 +1480,7 @@ body {
   text-align: center;
   border: var(--card-border);
   box-shadow: 0 25px 60px -15px rgba(21, 27, 45, 0.25);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .about-logo-wrap {
@@ -1531,45 +1537,10 @@ body {
 }
 
 .about-desc {
-  font-size: 13px;
+  font-size: 13.5px;
   color: var(--text-secondary);
-  line-height: 1.5;
-  margin-bottom: 20px;
-}
-
-.about-features-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  text-align: left;
-  margin-bottom: 22px;
-}
-
-.about-feature-item {
-  background: var(--bg-page);
-  border: 1px solid var(--border-color);
-  border-radius: 16px;
-  padding: 10px 12px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.about-feature-item .feature-icon {
-  font-size: 18px;
-}
-
-.about-feature-item strong {
-  display: block;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--text-main);
-}
-
-.about-feature-item p {
-  font-size: 10.5px;
-  color: var(--text-secondary);
-  margin-top: 1px;
+  line-height: 1.6;
+  margin-bottom: 24px;
 }
 
 .about-footer {
@@ -1699,7 +1670,7 @@ body {
   text-align: center;
   border: var(--card-border);
   box-shadow: 0 25px 60px -15px rgba(21, 27, 45, 0.25);
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.24s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .confirm-icon-wrap {

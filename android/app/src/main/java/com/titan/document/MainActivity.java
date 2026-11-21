@@ -14,6 +14,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -236,11 +237,40 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
-        public void shareAllFilesZip(String base64Data, String filename, String mimeType) {
+        public void backupAndShareZip(String base64Data, String filename, String mimeType) {
             runOnUiThread(() -> {
                 try {
                     byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
-                    File cacheDir = new File(getCacheDir(), "zip_exports");
+
+                    // 1. Auto-save directly to Downloads folder
+                    try {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            ContentValues values = new ContentValues();
+                            values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+                            values.put(MediaStore.MediaColumns.MIME_TYPE, mimeType != null ? mimeType : "application/zip");
+                            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/TitanDocuments");
+                            Uri uri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+                            if (uri != null) {
+                                try (OutputStream os = getContentResolver().openOutputStream(uri)) {
+                                    if (os != null) os.write(bytes);
+                                }
+                            }
+                        } else {
+                            File downloadDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+                            File titanDir = new File(downloadDir, "TitanDocuments");
+                            if (!titanDir.exists()) titanDir.mkdirs();
+                            File dest = new File(titanDir, filename);
+                            try (FileOutputStream fos = new FileOutputStream(dest)) {
+                                fos.write(bytes);
+                            }
+                        }
+                        Toast.makeText(MainActivity.this, "Auto-saved to Downloads", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Log.w("TitanDocument", "Auto-save error: " + e.getMessage());
+                    }
+
+                    // 2. Open Android native share sheet with all apps
+                    File cacheDir = new File(getCacheDir(), "shared_docs");
                     if (!cacheDir.exists()) cacheDir.mkdirs();
                     File file = new File(cacheDir, filename);
                     try (FileOutputStream fos = new FileOutputStream(file)) {
@@ -256,18 +286,23 @@ public class MainActivity extends AppCompatActivity {
                     shareIntent.putExtra(Intent.EXTRA_TITLE, filename);
                     shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-                    Intent chooserIntent = Intent.createChooser(shareIntent, "Share All Files (.ZIP) via");
+                    Intent chooserIntent = Intent.createChooser(shareIntent, "Share Backup (.ZIP) via");
                     chooserIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(chooserIntent);
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Export error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(MainActivity.this, "Backup error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 }
             });
         }
 
         @JavascriptInterface
+        public void shareAllFilesZip(String base64Data, String filename, String mimeType) {
+            backupAndShareZip(base64Data, filename, mimeType);
+        }
+
+        @JavascriptInterface
         public void uploadToGoogleDrive(String base64Data, String filename, String mimeType) {
-            shareAllFilesZip(base64Data, filename, mimeType);
+            backupAndShareZip(base64Data, filename, mimeType);
         }
     }
 
